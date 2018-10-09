@@ -343,18 +343,18 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
 	  hCh.Reset();
 	  hCh.SetTitle(title);
 	  
-	  if(i>=14){
-	    for(int j = 0;j<1024;j++){
-	      nitem = fread (&amplValues[i][j],sizeof(short),1,pFILE);
-	      hCh.SetBinContent(j+1,-(amplValues[i][j]*coef*1000));
-	    }//for 1024
-	  }
-	  else{
+	  // if(i>=14){
+	  //   for(int j = 0;j<1024;j++){
+	  //     nitem = fread (&amplValues[i][j],sizeof(short),1,pFILE);
+	  //     hCh.SetBinContent(j+1,-(amplValues[i][j]*coef*1000));
+	  //   }//for 1024
+	  // }
+	  // else{
 	    for(int j = 0;j<1024;j++){
 	      nitem = fread (&amplValues[i][j],sizeof(short),1,pFILE);
 	      hCh.SetBinContent(j+1,(amplValues[i][j]*coef*1000));
 	    }//for 1024
-	  }
+	  // }
 	  
 	  //for(int t=0;t<nActiveCh-nCh;t++){
 	  //  int dummy;
