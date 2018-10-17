@@ -51,20 +51,13 @@ int main(int argc, char *argv[]){
     runNr=atoi(argv[4]);
     WCVersion = checkFilename(outFile);
     cout << WCVersion << endl;
-    // if (WCVersion == 1){
-    //   cout << "AB" << endl;
-    //   return 0;
-    // }
-    // else if (WCVersion == 2){
-    //   cout << "CD" << endl;
-    //   return 0;
-    // }
+
     cout<<"In data file list : "<<inFileList<<endl
       <<"In data path      : "<<inDataFolder<<endl
       <<"Out root file     : "<<outFile<<endl;
     read(inFileList, inDataFolder, outFile);
   }
-  else if(argc == 13){
+  else if(argc == 9){
 
     /* Used for CERNTestBeam2017 data. The data from the testbeam has more 
     parameters which are handed to main() in order to calculate geometries 
@@ -74,14 +67,12 @@ int main(int argc, char *argv[]){
     inDataFolder = argv[2];
     outFile = argv[3];
     runNr=atoi(argv[4]);
-    horizontal = atof(argv[5])/1000; //units: [cm]
-    vertical = atof(argv[6])/1000; //units: [cm]
-    angle = atof(argv[7]);
-    //argv[8] - nevents from table
-    pdgID=atoi(argv[9]);// - pdgID
-    energy=atof(argv[10]);// - energy [GeV]
-    isSP=atoi(argv[11]);// - isSteelPlate
-    mp=atoi(argv[12]);//  measure-point
+    mp=atoi(argv[5]);
+    pdgID=atoi(argv[6]);
+    energy=atoi(argv[7]);
+    angle=atoi(argv[8]);
+    WCVersion = checkFilename(outFile);
+    cout << WCVersion << endl;
 
 
     cout<<"In data file list : "<<inFileList<<endl
