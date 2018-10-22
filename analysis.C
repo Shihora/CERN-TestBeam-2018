@@ -30,7 +30,7 @@ string checkFilename(TString filename){
   }
 }
 
-float CDF(TH1F* hWave, TF1* fTrigFit,float thr){
+float CDF(TH1F* hWave,float thr){
   float peak=hWave->GetMaximum();
   int timePos=1;
   float val = 0;
