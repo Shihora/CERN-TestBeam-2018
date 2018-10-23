@@ -70,6 +70,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   which is the saved in /runs/runName/out.root.
   */
 
+  /*Formerly used in TB17 analysis when calculation CFD. Not used in TB18 */
   TF1* fTrigFit = new TF1("fTrigFit","gaus");
   fTrigFit->SetParameter(0,800);
   fTrigFit->SetParameter(2,1);
@@ -387,10 +388,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         /*Setting the signal time by using a constant fraction disriminator method.
         The SiPM and the trigger sinals are handled differently using different thresholds.*/
         if (i == 15){ //trigger
-          t[i] = CDF(&hCh,fTrigFit,0.5);
+          t[i] = CDF(&hCh,0.5);
         }
         else { //SiPMs
-          t[i] = CDF(&hCh,fTrigFit,0.1);
+          t[i] = CDF(&hCh,0.1);
         }
 
         /*The signals for events can be printed to a .pdf file called waves.pdf. The rate at
