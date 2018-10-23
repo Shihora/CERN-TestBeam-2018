@@ -2,27 +2,29 @@
 #usage: ./runall_mp.sh
 
 # No runlist needed. Fetches list of files to be processed by "ls" command
+# Expects naming scheme of WaveCatcher run directory as follows:
+# "RunNr_ParticleName&Energy_Position_WOMName"
+# e.g. "44_muon6_pos5_AB"
 
 work_data()
 {
 here=`pwd`
 runName=$0
 
-echo $runName # dummy functionality for debugging
+# echo $runName # dummy functionality for debugging
 
-# mkdir $here/runs/$runName
+mkdir $here/runs/$runName
 
-# if [ ! -e $here/runs/$runName/$runName.list ]; then
-# 	ls $here/data/$runName | grep \.bin > $here/runs/$runName/$runName.list
-# fi
+if [ ! -e $here/runs/$runName/$runName.list ]; then
+	ls $here/data/$runName | grep \.bin > $here/runs/$runName/$runName.list
+fi
 
-# inFileList=$here/runs/$runName/$runName.list
+inFileList=$here/runs/$runName/$runName.list
 inDataFolder=$here/data/$runName/
-# outFile=$here/runs/$runName/out.root
-runNr=$(echo $runName | cut -d "_" -f 1)
-echo $runNr
+outFile=$here/runs/$runName/out.root
+runNr=$(echo $runName | cut -d "_" -f 1) # reads all characters infront of first "_"-delimiter in 
 
-# time $here/read $here/runs/$runName/$runName.list $here/data/$runName/ $here/runs/$runName/out.root run_counter
+time $here/read $inFileList $inDataFolder $outFile $runNr
 }
 
 # temporary declare bash function "work_data" to PATH variable
