@@ -62,12 +62,14 @@ case $case_selector in
 		{
 			here=`pwd`
 
-			runName=$0
+			if [ ! -d "$here/runs" ]; then
+  				mkdir $here/runs
+			fi
 
+			runName=$0
 			# echo $runName # dummy functionality for debugging
 
 			mkdir $here/runs/$runName
-
 			if [ ! -e $here/runs/$runName/$runName.list ]; then
 				ls $here/data/$runName | grep \.bin > $here/runs/$runName/$runName.list
 			fi
@@ -113,6 +115,11 @@ case $case_selector in
 			echo "$runAngle "
 
 			here=`pwd`
+
+			if [ ! -d "$here/runs" ]; then
+  				mkdir $here/runs
+			fi
+
 			mkdir $here/runs/$runName
 
 			if [ ! -e $here/runs/$runName/$runName.list ]; then
@@ -138,7 +145,9 @@ case $case_selector in
 		# "-P 8" option specifies number of parallel threads used
 		# xargs utilizes bash that executes function "work_data"
 
-		tail -n +2 "$runlist" | tr "\n" "\0" | xargs -0 -n 1 bash -c "work_data"
+		tail -n +2 "$runlist" | tr "\n" "\0" | xargs -0 -n 1 -P 8 bash -c "work_data"
+
+		# debugging
 		# tail -n +2 "test_runlist.txt" | tr "\n" "\0" | xargs -0 -P 8 -n 1 bash -c "test_fn"
 
 		;;
