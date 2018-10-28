@@ -1,5 +1,5 @@
 #!/bin/bash
-#usage: ./runall_mp.sh
+#usage: ./runall_mp.sh case runlist
 
 # Handles WaveCatcher data for processing. Executes processing in multiple threads using BSD xargs
 # Uses different cases depending on which format the runlist is available
