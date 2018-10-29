@@ -158,8 +158,11 @@ parse ()
 }
 export -f parse
 
+# initialize new runlist, first three lines comments
 DATE=`date '+%Y-%m-%d %H:%M:%S'`
 echo "-> new runlist created: $DATE <-" > $runlist # fist line in runlist. overwrite old runlist
+echo "runs 19-87  -> runNr runName MP pdgID energy angle WCidentifier" >> $runlist
+echo "runs 88-107 -> runNr runName MP pdgID energy angle WCidentifier sidePostitionX sidePostitionY" >> $runlist
 
 
 ######################
