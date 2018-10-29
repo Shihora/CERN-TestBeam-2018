@@ -10,11 +10,11 @@
 #			 Expects naming scheme of WaveCatcher run directory as follows:
 #			 "RunNr_ParticleName&Energy_Position_WOMName"
 #			 e.g. "44_muon6_pos5_AB"
-# case == 2: Customized to parse format of TB18 runlist file
+# case == 2: Customized to parse format of TB18 runlist file created by using "constr_runlist.sh"
 # 			 Expects white space separeted text file wherein each line corresponds to a single run
 # 			 Expected format of each runlist line:
-#			 "RunNr RunName MeasurementPosition RunPDGid runEnergy runAngle"
-#			 e.g. "42 42_pion6_pos8_CD 8 211 6 0"
+# 			 runs 19-87  -> runNr runName MP pdgID energy angle WCidentifier
+# 			 runs 88-107 -> runNr runName MP pdgID energy angle WCidentifier sidePostitionX sidePostitionY
 
 
 # Verify selected case
@@ -22,7 +22,7 @@ case_selector=$1
 echo ""; echo "selected case: $case_selector"
 
 # Verify passed runlist file
-if [ $case_selector != 1 ]
+if [[ $case_selector != 1 ]]
 then
 	runlist=$2 
 	echo "used runlist: $runlist"; echo "";
@@ -97,32 +97,42 @@ case $case_selector in
 	2)	
 		work_data()
 		{
+			here=`pwd`
 			rl_line=$0 # passed runlist line
 
-			# Parse run list line. Reads all characters infront of "_"-delimiter (-f option)
-			# Passed to "read" executable
-			runNr=$(echo $rl_line | cut -d " " -f 1) 
-			echo -n "$runNr "
-			runName=$(echo $rl_line | cut -d " " -f 2)
-			echo -n "$runName "
-			runMP=$(echo $rl_line | cut -d " " -f 3)
-			echo -n "$runMP "
-			runPDGid=$(echo $rl_line | cut -d " " -f 4)
-			echo -n "$runPDGid "
-			runEnergy=$(echo $rl_line | cut -d " " -f 5)
-			echo -n "$runEnergy "
-			runAngle=$(echo $rl_line | cut -d " " -f 6)
-			echo "$runAngle "
+			# Parse run list line.
+			# construct array. contains the elements separated by " " delimiter in $rl_line
+			IFS=" " read -r -a fields <<< "$rl_line"
+			nfields=${#fields[@]} # number of elements in array
 
-			here=`pwd`
+			# for element in "${fields[@]}"; do
+			# 	echo -n "$element " 
+			# done; echo ""
 
-			if [ ! -d "$here/runs" ]; then
-  				mkdir $here/runs
-			fi
+			runNr=${fields[0]}
+			runName=${fields[1]}
+			MP=${fields[2]}
+			pdgID=${fields[3]}
+			energy=${fields[4]}
+			angle=${fields[5]}
+			WC=${fields[6]}
+			# xy coordinates in case of 90° WOM scan (runs 88-107)
+			case $nfields in
+				7) ;;
+				9)
+					side_pos_x=${fields[7]}
+					side_pos_y=${fields[8]}
+					;;
+				*)
+					echo "UNKNOWN runlsit format" ;;
+			esac
 
-			mkdir $here/runs/$runName
-
-			if [ ! -e $here/runs/$runName/$runName.list ]; then
+			# create directories where the analized date will be stored in
+			if [[ ! -d "$here/runs" ]]; then mkdir $here/runs; fi
+			if [[ ! -d "$here/runs/$runName" ]]; then mkdir $here/runs/$runName; fi
+			
+			# create list of WaveCatcher files
+			if [[ ! -e $here/runs/$runName/$runName.list ]]; then
 				ls $here/data/$runName | grep \.bin > $here/runs/$runName/$runName.list
 			fi
 
@@ -130,25 +140,38 @@ case $case_selector in
 			inDataFolder=$here/data/$runName/
 			outFile=$here/runs/$runName/out.root
 
+			echo "$runNr $runName $MP $pdgID $energy $angle $WC $side_pos_x $side_pos_y"
+
 			# process data
-			time $here/read $inFileList $inDataFolder $outFile $runNr $runMP $runPDGid $runEnergy $runAngle
+
+			# case $nfields in
+			# 	7)
+			# 		time $here/read $inFileList $inDataFolder $outFile $runNr $MP $pdgID $energy $angle $WC	
+			# 		;;
+			# 	9)
+			# 		time $here/read $inFileList $inDataFolder $outFile $runNr $MP $pdgID $energy $angle $WC	$side_pos_x $side_pos_y
+			# 		;;					
+			# esac
+
+			time $here/read $inFileList $inDataFolder $outFile $runNr $MP $pdgID $energy $angle
 		}
 
 		# temporary declare bash function "work_data" to PATH variable
 		export -f work_data
 
-		# tail reads runlist starting from second line
+		# tail reads runlist starting from 4th line
 		# tr translates read EOL to NULL
 		# Pipe runlist into xargs that executes child command once per runlist line
 		# -0 options splits input around NULL bytes
 		# "-n 1" option insures that onyl one command per line is executed
-		# "-P 8" option specifies number of parallel threads used
+		# "-P 8" option specifies number of parallel threads used, here 8 threads
 		# xargs utilizes bash that executes function "work_data"
 
-		tail -n +2 "$runlist" | tr "\n" "\0" | xargs -0 -n 1 -P 8 bash -c "work_data"
+		tail -n +4 "$runlist" | tr "\n" "\0" | xargs -0 -n 1 -P 8 bash -c "work_data"
 
 		# debugging
-		# tail -n +2 "test_runlist.txt" | tr "\n" "\0" | xargs -0 -P 8 -n 1 bash -c "test_fn"
+		# tail -n +4 "$runlist" | tr "\n" "\0" | xargs -0 -n 1 bash -c "work_data"
+		# tail -n +4 "test_runlist.txt" | tr "\n" "\0" | xargs -0 -P 8 -n 1 bash -c "test_fn"
 
 		;;
 	*)
