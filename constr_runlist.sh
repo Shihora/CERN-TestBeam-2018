@@ -8,6 +8,8 @@
 # This script creates a runlist supporting runs 19-107 outputting two schemes:
 # runs 19-87  -> runNr runName MP pdgID energy angle WCidentifier
 # runs 88-107 -> runNr runName MP pdgID energy angle WCidentifier sidePostitionX sidePostitionY
+# prints each line into the passed runlist file
+# overwrites passed runlist file
 
 # LIST of existing naming schemes:
 # runNr 1-18 ->
