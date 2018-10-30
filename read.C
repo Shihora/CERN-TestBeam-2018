@@ -357,9 +357,17 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         hCh.SetTitle(title);
 
         /*Writing the signal amplitude values into the root-histogram hCh.*/
-        for(int j = 0;j<1024;j++){
-          nitem = fread (&amplValues[i][j],sizeof(short),1,pFILE);
-          hCh.SetBinContent(j+1,(amplValues[i][j]*coef*1000));
+        if (i == 15){
+          for(int j = 0;j<1024;j++){
+            nitem = fread (&amplValues[i][j],sizeof(short),1,pFILE);
+            hCh.SetBinContent(j+1,-(amplValues[i][j]*coef*1000));
+          }
+        }
+        else {
+          for(int j = 0;j<1024;j++){
+            nitem = fread (&amplValues[i][j],sizeof(short),1,pFILE);
+            hCh.SetBinContent(j+1,(amplValues[i][j]*coef*1000));
+          }
         }
 
         /*Analysis if the event/signal starts.*/
@@ -392,6 +400,9 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         }
         else { //SiPMs
           t[i] = CDF(&hCh,0.1);
+          if (t[i] < 75){
+            t[i] = CDFinvert(&hCh,0.3);
+          }
         }
 
         /*The signals for events can be printed to a .pdf file called waves.pdf. The rate at
