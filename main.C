@@ -110,8 +110,8 @@ int main(int argc, char *argv[]){
     // WCVersion = checkFilename(outFile);
     WCVersion=argv[9];
     cout << WCVersion << endl;
-    horizontal=atoi(argv[10]);
-    vertical=atoi(argv[11]);
+    horizontal=atof(argv[10]);
+    vertical=atof(argv[11]);
 
 
     cout<<"In data file list : "<<inFileList<<endl
