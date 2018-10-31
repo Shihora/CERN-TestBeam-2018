@@ -32,7 +32,7 @@ fi
 ### DEBUGGING ###
 #################
 
-# Test function for fast debugging with xargs
+# Test functions for fast debugging with xargs
 test_fn()
 {
 	echo -n "-> "; for a in "$0"; do echo -n "\"$a\" "; done; echo
@@ -105,6 +105,7 @@ case $case_selector in
 			IFS=" " read -r -a fields <<< "$rl_line"
 			nfields=${#fields[@]} # number of elements in array
 
+			# debugging
 			# for element in "${fields[@]}"; do
 			# 	echo -n "$element " 
 			# done; echo ""
@@ -143,17 +144,14 @@ case $case_selector in
 			echo "$runNr $runName $MP $pdgID $energy $angle $WC $side_pos_x $side_pos_y"
 
 			# process data
-
-			# case $nfields in
-			# 	7)
-			# 		time $here/read $inFileList $inDataFolder $outFile $runNr $MP $pdgID $energy $angle $WC	
-			# 		;;
-			# 	9)
-			# 		time $here/read $inFileList $inDataFolder $outFile $runNr $MP $pdgID $energy $angle $WC	$side_pos_x $side_pos_y
-			# 		;;					
-			# esac
-
-			time $here/read $inFileList $inDataFolder $outFile $runNr $MP $pdgID $energy $angle
+			case $nfields in
+				7)
+					time $here/read $inFileList $inDataFolder $outFile $runNr $MP $pdgID $energy $angle $WC	
+					;;
+				9)
+					time $here/read $inFileList $inDataFolder $outFile $runNr $MP $pdgID $energy $angle $WC	$side_pos_x $side_pos_y
+					;;					
+			esac
 		}
 
 		# temporary declare bash function "work_data" to PATH variable
@@ -166,11 +164,9 @@ case $case_selector in
 		# "-n 1" option insures that onyl one command per line is executed
 		# "-P 8" option specifies number of parallel threads used, here 8 threads
 		# xargs utilizes bash that executes function "work_data"
-
 		tail -n +4 "$runlist" | tr "\n" "\0" | xargs -0 -n 1 -P 8 bash -c "work_data"
 
 		# debugging
-		# tail -n +4 "$runlist" | tr "\n" "\0" | xargs -0 -n 1 bash -c "work_data"
 		# tail -n +4 "test_runlist.txt" | tr "\n" "\0" | xargs -0 -P 8 -n 1 bash -c "test_fn"
 
 		;;
