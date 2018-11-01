@@ -72,7 +72,7 @@ int main(int argc, char *argv[]){
     energy=atoi(argv[7]);
     angle=atoi(argv[8]);
     // WCVersion = checkFilename(outFile);
-    WCVersion=atoi(argv[9]);
+    WCVersion=argv[9];
     cout << WCVersion << endl;
 
 
