@@ -44,7 +44,7 @@ int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
 int signalPrintRate = 100000;//100
 double coef = 2.5 / (4096 * 10);
-string WCHU ("WC-Version:1.14"), WCAlexander ("WC-Version:1.7");
+string WCHU ("AB"), WCAlexander ("CD");
 
 //External Variables - mostly definded in main.C
 extern string WCVersion;
@@ -201,7 +201,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("vert",&vertical,"vert/F");//vertical position of the box, units: [cm]
   tree->Branch("angle",&angle,"angle/F");
   tree->Branch("pdgID",&pdgID,"pdgID/I");
-  tree->Branch("WOMID",&WOMID,"WOMID/I");
+  // tree->Branch("WOMID",&WOMID,"WOMID/I");
   tree->Branch("WOMID",WOMID, "WOMID[nCh]/I");
   tree->Branch("energy",&energy,"energy/F");
   tree->Branch("isSP",&isSP,"isSP/I");

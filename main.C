@@ -49,7 +49,7 @@ int main(int argc, char *argv[]){
     inDataFolder = argv[2];
     outFile = argv[3];
     runNr=atoi(argv[4]);
-    WCVersion = checkFilename(outFile);
+    WCVersion = "AB";
     cout << WCVersion << endl;
 
     cout<<"In data file list : "<<inFileList<<endl
@@ -57,11 +57,11 @@ int main(int argc, char *argv[]){
       <<"Out root file     : "<<outFile<<endl;
     read(inFileList, inDataFolder, outFile);
   }
-  else if(argc == 9){
+  else if(argc == 10){
 
     /* Used for CERNTestBeam2017 data. The data from the testbeam has more 
     parameters which are handed to main() in order to calculate geometries 
-    and save measurement positions, angles ect. */
+    and save measurement positions, angles ect. Used for runNrs 19-87 (angles 0 & 30), as these runs are not measured using x&y coordinates.*/
     
     inFileList = argv[1];
     inDataFolder = argv[2];
@@ -71,7 +71,8 @@ int main(int argc, char *argv[]){
     pdgID=atoi(argv[6]);
     energy=atoi(argv[7]);
     angle=atoi(argv[8]);
-    WCVersion = checkFilename(outFile);
+    // WCVersion = checkFilename(outFile);
+    WCVersion=argv[9];
     cout << WCVersion << endl;
 
 
@@ -89,6 +90,44 @@ int main(int argc, char *argv[]){
     safPMT2 = saf[0];
     trackL = saf[1];
 	
+    read(inFileList, inDataFolder, outFile);
+
+  }
+  else if(argc == 12){
+
+    /* Used for CERNTestBeam2017 data. The data from the testbeam has more
+    parameters which are handed to main() in order to calculate geometries
+    and save measurement positions, angles ect. Used for runNrs 88-107 (angle 90), as these runs are measured using x&y coordinates.*/
+
+    inFileList = argv[1];
+    inDataFolder = argv[2];
+    outFile = argv[3];
+    runNr=atoi(argv[4]);
+    mp=atoi(argv[5]);
+    pdgID=atoi(argv[6]);
+    energy=atoi(argv[7]);
+    angle=atoi(argv[8]);
+    // WCVersion = checkFilename(outFile);
+    WCVersion=argv[9];
+    cout << WCVersion << endl;
+    horizontal=atof(argv[10]);
+    vertical=atof(argv[11]);
+
+
+    cout<<"In data file list : "<<inFileList<<endl
+      <<"In data path      : "<<inDataFolder<<endl
+      <<"Out root file     : "<<outFile<<endl
+      <<"Run number         : "<<runNr<<endl;
+    printf("hor,ver,ang: %4.2f %4.2f %4.2f\n",horizontal,vertical,angle);
+    std::vector<float> starPos = getStartPos(horizontal,vertical,angle);
+    //printf("start pos: %4.2f %4.2f %4.2f %4.2f\n",starPos[0],starPos[1],starPos[2],starPos[3]);
+    std::vector<float> saf = solidAngleFactor(starPos,pmt2Pos);
+    //printf("length: %4.2f %4.2f \n", saf[1],10*calculateDistance(horizontal,angle*TMath::Pi()/180));
+    printf("length: %4.2f \n", saf[1]);
+    printf("saf: %4.2f \n", saf[0]);
+    safPMT2 = saf[0];
+    trackL = saf[1];
+
     read(inFileList, inDataFolder, outFile);
 
   }
