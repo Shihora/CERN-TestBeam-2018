@@ -411,15 +411,32 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         if(EventNumber%wavesPrintRate==0){
           cWaves.cd(1+4*(i%4)+(i)/4);
           hCh.DrawCopy();
-          TLine* ln = new TLine(t[i],-2000,t[i],2000); //draw red vertical line at signal time
+          // TLine* ln = new TLine(t[i],-2000,t[i],2000); //draw red vertical line 
+          hCh.GetXaxis()->SetRange(320,480);
+          int max_bin = hCh.GetMaximumBin();
+          int lower_bin = max_bin - 64;
+          int upper_bin = max_bin + 96;
+          // double x = h->GetXaxis()->GetBinCenter(binmax);
+          float max_time = hCh.GetXaxis()->GetBinCenter(max_bin);
+          float lower_time = hCh.GetXaxis()->GetBinCenter(lower_bin);
+          float upper_time = hCh.GetXaxis()->GetBinCenter(upper_bin);
+          hCh.GetXaxis()->SetRange(0,1024);
+          TLine* ln = new TLine(max_time,-2000,max_time,2000); //draw red 
+          TLine* ln2 = new TLine(lower_time,-2000,lower_time,2000); //draw red 
+          TLine* ln3 = new TLine(upper_time,-2000,upper_time,2000); //draw red vertical line at signal time
           ln->SetLineColor(2);
+          ln2->SetLineColor(3);
+          ln3->SetLineColor(3);
           ln->Draw("same");
+          ln2->Draw("same");
+          ln3->Draw("same");
         }
 
         /*There are several definitions of the integral of a signal used here. Those are:
         - Integral_0_300: Integration over the entire time window (~320ns)
         - Integral: Integration over a smaller time window (~50ns) relative to the trigger*/
         Integral_0_300[i] = (hCh.Integral(1, 1024, "width")-BL[i]*1024*SP);
+        Integral[i] = Integrate_50ns(&hCh, 0.0);
 
       }
 

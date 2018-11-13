@@ -7,6 +7,8 @@
 //C, C++
 #include <math.h>
 #include <vector>
+#include <assert.h>
+#include <stdio.h>
 
 //specific
 #include "analysis.h"
@@ -61,8 +63,37 @@ float CDFinvert(TH1F* hWave,float thr){
   double y1 = hWave->GetBinContent(timePos);
   double y2 = hWave->GetBinContent(timePos+1);
   double k = (x2-x1)/(y2-y1);
-  return  x1+k*(thr*peak-y1);
-  
+  return  x1+k*(thr*peak-y1);  
+}
+
+float Integrate_50ns(TH1F* hWave, float BL){
+  /*
+  Function to integrate the given histogram for 50ns. The range is defined with respect to the position of the maximum in the intervall from 100 to 150ns.
+  Procedure:
+    - Set the range of the histogram to 100-150ns
+    - Find the bin-number of the maximum in that range
+    - Determine the bins 20ns before maximum and 30ns after maximum
+    - Reset the histogram to full range
+    - Assert that the bins correspond to 50ns range
+    - Integrate the 50ns subtracting the baseline given as input
+
+  Input: TH1F pointer to histogram, BL as float
+  Output: Integral in mV*ns as float
+  */
+
+  hWave->GetXaxis()->SetRange(320,480); //set range to 100-150ns
+  int max_bin = hWave->GetMaximumBin(); //bin-number corresponding to maximum in range 100-150ns
+  int lower_bin = max_bin - 64; //lower integration-limit set to 20ns before maximum
+  int upper_bin = max_bin + 96; //upper integration-limit set to 30ns before maximum
+  hWave->GetXaxis()->SetRange(0,1024); //back to full range
+
+  //consistency-check for 50ns integration range
+  float lower_time = hWave->GetXaxis()->GetBinCenter(lower_bin);
+  float upper_time = hWave->GetXaxis()->GetBinCenter(upper_bin);
+  assert((upper_time-lower_time)==50.0);
+
+  //return 50ns integral with subtracted baseline 
+  return hWave->Integral(lower_bin, upper_bin, "width") - BL*SP*160;
 }
 
 float integral(TH1F* hWave,float t1,float t2,float BL){
