@@ -39,7 +39,7 @@ float pe = 47.46;//mV*ns
 //vector<float> pe_SiPM = {32.14, 39.33, 34.20, 30.79, 34.09, 29.99, 30.69, 29.95}; //a,b,c,d,e,f,g,h  -  Gain-Baseline from fit
 vector<float> pe_SiPM = {42.01, 34.67, 34.28, 33.84, 37.55, 34.68, 33.81, 38.84}; //sorted by Wavecatcher-Channel
 vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.754};
-int wavesPrintRate = 100;
+int wavesPrintRate = 1;
 int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
 int signalPrintRate = 100000;//100
@@ -126,7 +126,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Float_t tSiPM[16];
   Float_t BL[16];//store baseline for 16 channels
   Float_t BL_RMS[16];//store rms of baseline for 16 channels
-  float BL_output[2];//array used for output getBL-function
+  Float_t BL_Chi2[16];
+  float BL_output[3];//array used for output getBL-function
   float Integral_0_300[16];//array used to store Integral of signal from 0 to 300ns
   float Integral[16];
   float Integral_Correction;
@@ -227,6 +228,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("tSiPM", tSiPM, "tSiPM[nCh]/F");
   tree->Branch("BL", BL, "BL[nCh]/F");
   tree->Branch("BL_RMS", BL_RMS, "BL_RMS[nCh]/F");
+  tree->Branch("BL_Chi2", BL_Chi2, "BL_Chi2[nCh]/F");
   tree->Branch("Integral_0_300", Integral_0_300, "Integral_0_300[nCh]/F");
   tree->Branch("Integral", Integral, "Integral[nCh]/F");
   tree->Branch("Integral_Correction",&Integral_Correction, "Integral_Correction/F");
@@ -374,24 +376,24 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         max[i] = hCh.GetMaximum();
         min[i] = hCh.GetMinimum();
         amp[i] = hCh.GetMaximum();
-	  
-        getBL(&hCh, BL_output,0,30);
-        BL[i] = BL_output[0];
-        BL_RMS[i] = BL_output[1];
-
-        amp[i] = hCh.GetMaximum() - BL[i];
-	  
-        /*The error of each value in each bin is here set to the root-mean-square of the
-        baseline.*/
-        for(int j = 1;j <= hCh.GetXaxis()->GetNbins();j++){
-          hCh.SetBinError(j,BL_RMS[i]);
-        }
 
         /*Saving the histogram of that event into a temporary histogram hChtemp.
         These histograms are available outside of the channel-loop. If analysis using
         the signals/events of multiple channels needs to be done, this can be accomplished
         by using hChtemp after the channel-loop.*/
         hChtemp.at(i) = hCh;
+	  
+        BL_fit(&hChtemp.at(i), BL_output, 0.0, 75.0);
+        BL[i] = BL_output[0];
+        BL_RMS[i] = BL_output[1];
+        BL_Chi2[i] = BL_output[2];
+	  
+        /*The error of each value in each bin is here set to the root-mean-square of the
+        baseline.*/
+        // for(int j = 1;j <= hCh.GetXaxis()->GetNbins();j++){
+        //   hCh.SetBinError(j,BL_RMS[i]);
+        // }
+
 
         /*Setting the signal time by using a constant fraction disriminator method.
         The SiPM and the trigger sinals are handled differently using different thresholds.*/
@@ -421,15 +423,18 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
           float lower_time = hCh.GetXaxis()->GetBinCenter(lower_bin);
           float upper_time = hCh.GetXaxis()->GetBinCenter(upper_bin);
           hCh.GetXaxis()->SetRange(0,1024);
-          TLine* ln = new TLine(max_time,-2000,max_time,2000); //draw red 
-          TLine* ln2 = new TLine(lower_time,-2000,lower_time,2000); //draw red 
-          TLine* ln3 = new TLine(upper_time,-2000,upper_time,2000); //draw red vertical line at signal time
+          TLine* ln = new TLine(max_time,-2000,max_time,2000);
+          TLine* ln2 = new TLine(lower_time,-2000,lower_time,2000);
+          TLine* ln3 = new TLine(upper_time,-2000,upper_time,2000);
+          TLine* ln4 = new TLine(0,BL[i],50,BL[i]);
           ln->SetLineColor(2);
           ln2->SetLineColor(3);
           ln3->SetLineColor(3);
+          ln4->SetLineColor(2);
           ln->Draw("same");
           ln2->Draw("same");
           ln3->Draw("same");
+          ln4->Draw("same");
         }
 
         /*There are several definitions of the integral of a signal used here. Those are:

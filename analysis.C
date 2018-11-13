@@ -129,6 +129,20 @@ float* getBL(TH1F* hWave, float* BL, float t1, float t2){
   return BL;
 }
 
+float* BL_fit(TH1F* hWave, float* BL_chi2, float t1, float t2){
+
+  // TF1 *f_const = new TF1("f_const","[0]",t1,t2);
+  // hWave->Fit("f_const","RN");
+  TF1 *f_const = new TF1("f_const","pol0",t1,t2);
+  hWave->Fit("f_const","RNWQ");
+
+  BL_chi2[0] = f_const->GetParameter(0);
+  BL_chi2[1] = f_const->GetParError(0);
+  BL_chi2[2] = f_const->GetChisquare()/f_const->GetNDF();
+
+  return BL_chi2;
+}
+
 double correction_function(double x){
   return (-142.761 + 0.976471* x ) - (-6498.75 + 2.76626*x - 
     0.000141752*TMath::Power(x,2) + 
