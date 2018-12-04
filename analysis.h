@@ -12,6 +12,7 @@ float Integrate_50ns(TH1F* hWave, float BL);
 float integral(TH1F* hWave,float t1,float t2,float BL);
 float* getBL(TH1F* hWave, float* BL, float t1, float t2);
 float* BL_fit(TH1F* hWave, float* BL_chi2, float t1, float t2);
+float PE(TH1F* hWave, float calib_factor, float BL);
 double correction_function(double x);
 
 #endif

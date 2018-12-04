@@ -143,6 +143,22 @@ float* BL_fit(TH1F* hWave, float* BL_chi2, float t1, float t2){
   return BL_chi2;
 }
 
+float PE(TH1F* hWave, float calib_factor, float BL){
+  TF1* f1 = new TF1("f1","pol0",100,300);
+  double r1=0;
+  double r2=0;
+
+  hWave->GetXaxis()->SetRange(320,480);
+  r1=hWave->GetMaximumBin()*SP-0.5;
+  r2=r1+1;
+
+  hWave->Fit("f1","QN","",r1,r2);
+  float pe = (f1->GetParameter(0) - BL) / calib_factor;
+  hWave->GetXaxis()->SetRange(1,1024);
+
+  return pe;
+}
+
 double correction_function(double x){
   return (-142.761 + 0.976471* x ) - (-6498.75 + 2.76626*x - 
     0.000141752*TMath::Power(x,2) + 

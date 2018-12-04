@@ -40,7 +40,8 @@ float pe = 47.46;//mV*ns
 //vector<float> pe_SiPM = {32.14, 39.33, 34.20, 30.79, 34.09, 29.99, 30.69, 29.95}; //a,b,c,d,e,f,g,h  -  Gain-Baseline from fit
 vector<float> pe_SiPM = {42.01, 34.67, 34.28, 33.84, 37.55, 34.68, 33.81, 38.84}; //sorted by Wavecatcher-Channel
 vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.754};
-int wavesPrintRate = 1;
+vector<float> calib_amp_AB = {10.072,9.24254,8.88147,9.57771,9.58071,9.14965,9.53239,6.74035,9.62728,9.62879,10.0288,10.3354,9.75948,9.53048,9.68774,1};
+int wavesPrintRate = 1000;
 int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
 int signalPrintRate = 100000;//100
@@ -120,6 +121,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   int nActiveCh = -1;
   Int_t ChannelNr[16];
   Int_t WOMID[16];  //1=A, 2=B, 3=C, 4=D
+  float PE_WOM1, PE_WOM2;
   std::vector<float> amp(16,-999);
   std::vector<float> max(16,-999);
   std::vector<float> min(16,-999);
@@ -134,7 +136,6 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   float BL_output[3];//array used for output getBL-function
   float Integral_0_300[16];//array used to store Integral of signal from 0 to 300ns
   float Integral[16];
-  float Integral_Correction;
   float Integral_mVns[16];
   int NumberOfBins;
   Int_t EventIDsamIndex[16];
@@ -229,6 +230,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("min",min.data(), "min[nCh]/F");
   tree->Branch("t",t, "t[nCh]/F");
   tree->Branch("tSiPM", tSiPM, "tSiPM[nCh]/F");
+  tree->Branch("PE_WOM1",&PE_WOM1, "PE_WOM1/F");
+  tree->Branch("PE_WOM2",&PE_WOM2, "PE_WOM2/F");
   tree->Branch("BL_lower", BL_lower, "BL_lower[nCh]/F");
   tree->Branch("BL_RMS_lower", BL_RMS_lower, "BL_RMS_lower[nCh]/F");
   tree->Branch("BL_Chi2_lower", BL_Chi2_lower, "BL_Chi2_lower[nCh]/F");
@@ -237,7 +240,6 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("BL_Chi2_upper", BL_Chi2_upper, "BL_Chi2_upper[nCh]/F");
   tree->Branch("Integral_0_300", Integral_0_300, "Integral_0_300[nCh]/F");
   tree->Branch("Integral", Integral, "Integral[nCh]/F");
-  tree->Branch("Integral_Correction",&Integral_Correction, "Integral_Correction/F");
   tree->Branch("Integral_mVns", Integral_mVns, "Integral_mVns[nCh]/F");
   tree->Branch("EventIDsamIndex",EventIDsamIndex, "EventIDsamIndex[nCh]/I");
   tree->Branch("FirstCellToPlotsamIndex",FirstCellToPlotsamIndex, "FirstCellToPlotsamIndex[nCh]/I");
@@ -375,14 +377,17 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
           for(int j = 0;j<1024;j++){
             nitem = fread (&amplValues[i][j],sizeof(short),1,pFILE);
             hCh.SetBinContent(j+1,(amplValues[i][j]*coef*1000));
-            hCh.SetBinError(j+1,0.5);
           }
+        }
+        /*The error of each value in each bin is set to 0.5 mV.*/
+        for(int j=1;j<=hCh.GetXaxis()->GetNbins();j++){
+          hCh.SetBinError(j,0.5);
         }
 
         /*Analysis if the event/signal starts.*/
         max[i] = hCh.GetMaximum();
         min[i] = hCh.GetMinimum();
-        amp[i] = hCh.GetMaximum();
+
 
         /*Saving the histogram of that event into a temporary histogram hChtemp.
         These histograms are available outside of the channel-loop. If analysis using
@@ -399,10 +404,6 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         BL_RMS_upper[i] = BL_output[1];
         BL_Chi2_upper[i] = BL_output[2];
 	  
-        /*The error of each value in each bin is set to 0.5 mV.*/
-        // for(int j = 1;j <= hCh.GetXaxis()->GetNbins();j++){
-        //   hCh.SetBinError(j,0.5);
-        // }
 
 
         /*Setting the signal time by using a constant fraction disriminator method.
@@ -419,11 +420,12 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
 
         /*The signals for events can be printed to a .pdf file called waves.pdf. The rate at
         which the events are drawn to waves.pdf is set via the variable wavesPrintRate. Additional
-        requirements can be set in the if-statement to look at specific events only.*/
+        requirements can be set in the if-statement to look at specific events only.
+        The entire if-statement so far also plots lines at the found signal maximum, the corresponding integration limit, as well as the BL values to each of the histograms.
+        */
         if(EventNumber%wavesPrintRate==0){
           cWaves.cd(1+4*(i%4)+(i)/4);
           hCh.DrawCopy();
-          // TLine* ln = new TLine(t[i],-2000,t[i],2000); //draw red vertical line 
           hCh.GetXaxis()->SetRange(320,480);
           int max_bin = hCh.GetMaximumBin();
           int lower_bin = max_bin - 64;
@@ -454,17 +456,24 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
 
         /*There are several definitions of the integral of a signal used here. Those are:
         - Integral_0_300: Integration over the entire time window (~320ns)
-        - Integral: Integration over a smaller time window (~50ns) relative to the trigger*/
+        - Integral: Integration over a smaller time window (~50ns) relative to the trigger
+        Additionally the number of p.e. is now calculated using the amplitude
+        and the calibration factors in the calib_amp-vactor. The function 'PE' calculates the amplitude of the signal, subtracts the better BL value and divides by the calibration factor.
+        */
         Integral_0_300[i] = (hCh.Integral(1, 1024, "width")-0.0*1024*SP);
         if (BL_Chi2_upper[i] <= BL_Chi2_lower[i]){
         	Integral[i] = Integrate_50ns(&hCh, BL_upper[i]);
+          amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_upper[i]);
         }
         else{
         	Integral[i] = Integrate_50ns(&hCh, BL_lower[i]);
+          amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_lower[i]);
         }
-
       }
 
+      // Calculate & save the number of p.e. for an entire WOM. Note: for the 1st WOM of each WC one channel was not recorded. Thus, there are only 7 values from 8. The result for the WOM is therefore scaled up by 8/7 to make the numbers comparable.
+      PE_WOM1 = 8/7*(amp[0]+amp[1]+amp[2]+amp[3]+amp[4]+amp[5]+amp[6]);
+      PE_WOM2 = (amp[7]+amp[8]+amp[9]+amp[10]+amp[11]+amp[12]+amp[13]+amp[14]);
       trigT = t[15];
       for (int i=0; i<=14; i++){
         tSiPM[i] = t[i] - trigT;
