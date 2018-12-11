@@ -15,6 +15,8 @@
 #include <TLegend.h>
 #include <THStack.h>
 #include <THistPainter.h>
+#include <TSpectrum.h> // peakfinder
+#include <TPolyMarker.h> // peakfinder
 //#include <TStyle.h>
 
 //C, C++
@@ -39,12 +41,13 @@ float pe = 47.46;//mV*ns
 //vector<float> pe_SiPM = {32.14, 39.33, 34.20, 30.79, 34.09, 29.99, 30.69, 29.95}; //a,b,c,d,e,f,g,h  -  Gain-Baseline from fit
 vector<float> pe_SiPM = {42.01, 34.67, 34.28, 33.84, 37.55, 34.68, 33.81, 38.84}; //sorted by Wavecatcher-Channel
 vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.754};
-int wavesPrintRate = 100;
+int wavesPrintRate = 500;
 int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
 int signalPrintRate = 100000;//100
 double coef = 2.5 / (4096 * 10);
 string WCHU ("AB"), WCAlexander ("CD");
+int nPeaks = 4; // maximum number of peaks to be stored by peakfinder
 
 //External Variables - mostly definded in main.C
 extern string WCVersion;
@@ -115,7 +118,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Int_t isLastEvt = -999;
   Int_t isGoodSignal_5 = -999;
   Float_t trigGate = -999;
-  Int_t nCh = -1;
+  Int_t nCh = 16;
   int nActiveCh = -1;
   Int_t ChannelNr[16];
   Int_t WOMID[16];  //1=A, 2=B, 3=C, 4=D
@@ -127,6 +130,19 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Float_t BL[16];//store baseline for 16 channels
   Float_t BL_RMS[16];//store rms of baseline for 16 channels
   float BL_output[2];//array used for output getBL-function
+  /*
+  Baseline Fit
+  */
+  float BL_fit_output[3];
+  Float_t BL_val[16];
+  Float_t BL_val_err[16];
+  Float_t BL_chi2[16];
+  /*
+  Peakfinder
+  */
+  Double_t peakXarray[16][nPeaks];
+  Double_t peakYarray[16][nPeaks];
+
   float Integral_0_300[16];//array used to store Integral of signal from 0 to 300ns
   float Integral[16];
   float Integral_Correction;
@@ -191,9 +207,9 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("Second",&Second, "Second_/I");
   tree->Branch("Millisecond",&Millisecond, "Millisecond/I");
   tree->Branch("trigT",&trigT, "trigT/F");
-  tree->Branch("tPMT1",&tPMT1, "tPMT1/F");
-  tree->Branch("tPMT2",&tPMT2, "tPMT2/F");
-  tree->Branch("tPMT2i",&tPMT2i, "tPMT2i/F");
+  // tree->Branch("tPMT1",&tPMT1, "tPMT1/F");
+  // tree->Branch("tPMT2",&tPMT2, "tPMT2/F");
+  // tree->Branch("tPMT2i",&tPMT2i, "tPMT2i/F");
   tree->Branch("tSUMp",&tSUMp, "tSUMp/F");
   tree->Branch("tSUMm",&tSUMm, "tSUMm/F");
   tree->Branch("runNr",&runNr, "runNr/I");//run number in google table
@@ -201,24 +217,23 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("vert",&vertical,"vert/F");//vertical position of the box, units: [cm]
   tree->Branch("angle",&angle,"angle/F");
   tree->Branch("pdgID",&pdgID,"pdgID/I");
-  // tree->Branch("WOMID",&WOMID,"WOMID/I");
-  tree->Branch("WOMID",WOMID, "WOMID[nCh]/I");
   tree->Branch("energy",&energy,"energy/F");
   tree->Branch("isSP",&isSP,"isSP/I");
   tree->Branch("mp",&mp,"mp/I");
-  tree->Branch("safPMT2",&safPMT2,"safPMT2/I");//solid angle factor
-  tree->Branch("safPMT1",&safPMT1,"safPMT1/I");//solid angle factor
-  tree->Branch("safSiPM",&safSiPM,"safSiPM/I");//solid angle factor
-  tree->Branch("trackL",&trackL,"trackL/I");//track length
-  tree->Branch("isLastEvt",&isLastEvt,"isLastEvt/I");
-  tree->Branch("trigGate",&trigGate,"trigGate/F");
-  tree->Branch("trigTp",&trigTp, "trigTp/F");
-  tree->Branch("t0t1",&t0t1, "t0t1/F");//t0t1 = [(t0-t1)]
-  tree->Branch("t2t3",&t2t3, "t2t3/F");
-  tree->Branch("isVeto",&isVeto,"isVeto/I");
-  tree->Branch("isTrig",&isTrig,"isTrig/I");
-  tree->Branch("isGoodSignal_5",&isGoodSignal_5,"isGoodSignal_5/I");
+  // tree->Branch("safPMT2",&safPMT2,"safPMT2/I");//solid angle factor
+  // tree->Branch("safPMT1",&safPMT1,"safPMT1/I");//solid angle factor
+  // tree->Branch("safSiPM",&safSiPM,"safSiPM/I");//solid angle factor
+  // tree->Branch("trackL",&trackL,"trackL/I");//track length
+  // tree->Branch("isLastEvt",&isLastEvt,"isLastEvt/I");
+  // tree->Branch("trigGate",&trigGate,"trigGate/F");
+  // tree->Branch("trigTp",&trigTp, "trigTp/F");
+  // tree->Branch("t0t1",&t0t1, "t0t1/F");//t0t1 = [(t0-t1)]
+  // tree->Branch("t2t3",&t2t3, "t2t3/F");
+  // tree->Branch("isVeto",&isVeto,"isVeto/I");
+  // tree->Branch("isTrig",&isTrig,"isTrig/I");
+  // tree->Branch("isGoodSignal_5",&isGoodSignal_5,"isGoodSignal_5/I");
   tree->Branch("nCh",&nCh, "nCh/I");
+  tree->Branch("WOMID",WOMID, "WOMID[nCh]/I");
   tree->Branch("ch",ChannelNr, "ch[nCh]/I");
   tree->Branch("amp",amp.data(), "amp[nCh]/F");
   tree->Branch("max",max.data(), "max[nCh]/F");
@@ -227,12 +242,24 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("tSiPM", tSiPM, "tSiPM[nCh]/F");
   tree->Branch("BL", BL, "BL[nCh]/F");
   tree->Branch("BL_RMS", BL_RMS, "BL_RMS[nCh]/F");
+  /*
+  Baseline Fit
+  */
+  tree->Branch("fBL", BL_val,"BL[nCh]/F");
+  tree->Branch("fBL_err", BL_val_err,"BL[nCh]/F");
+  tree->Branch("fBL_chi2", BL_chi2,"BL_chi2[nCh]/F");
+  /*
+  Peakfinder
+  */
+  tree->Branch("peakX",peakXarray,"peakX[nCh][4]/D");
+  tree->Branch("peakY",peakYarray,"peakY[nCh][4]/D");
+
   tree->Branch("Integral_0_300", Integral_0_300, "Integral_0_300[nCh]/F");
   tree->Branch("Integral", Integral, "Integral[nCh]/F");
   tree->Branch("Integral_Correction",&Integral_Correction, "Integral_Correction/F");
-  tree->Branch("Integral_mVns", Integral_mVns, "Integral_mVns[nCh]/F");
-  tree->Branch("EventIDsamIndex",EventIDsamIndex, "EventIDsamIndex[nCh]/I");
-  tree->Branch("FirstCellToPlotsamIndex",FirstCellToPlotsamIndex, "FirstCellToPlotsamIndex[nCh]/I");
+  // tree->Branch("Integral_mVns", Integral_mVns, "Integral_mVns[nCh]/F");
+  // tree->Branch("EventIDsamIndex",EventIDsamIndex, "EventIDsamIndex[nCh]/I");
+  // tree->Branch("FirstCellToPlotsamIndex",FirstCellToPlotsamIndex, "FirstCellToPlotsamIndex[nCh]/I");
 
   /*Start reading the raw data from .bin files.*/
   int nitem = 1;
@@ -343,12 +370,12 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         these letters are here replaced by the numbers 1-4 which is stored in the root-tree for
         every channel and every event.*/
         if (WCVersion == WCAlexander){
-          if (i <= 6){ WOMID[i] = 1; }
-          else if (i >= 7 && i <= 14){ WOMID[i] = 2; }
-        }
-        else {
           if (i <= 6){ WOMID[i] = 3; }
           else if (i >= 7 && i <= 14){ WOMID[i] = 4; }
+        }
+        else {
+          if (i <= 6){ WOMID[i] = 1; }
+          else if (i >= 7 && i <= 14){ WOMID[i] = 2; }
         }
 
         TString title("");
@@ -387,13 +414,42 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
           hCh.SetBinError(j,BL_RMS[i]);
         }
 
-        /*Saving the histogram of that event into a temporary histogram hChtemp.
+        /*
+        __ Baseline Fit _______________________________________________________
+        */
+        getBL_fit(&hCh, BL_fit_output, 0, 80);
+        BL_val[i] = BL_fit_output[0];
+        BL_val_err[i] = BL_fit_output[1];
+        BL_chi2[i] = BL_fit_output[2];
+
+        /*
+        __ Peakfinder using TSpectrum class. _________________________________
+        Implemented to search double-muon-event candiates
+        Set maximum number of peaks stored in beginning of script -> nPeaks
+        peakX/Yarray[nCh][nPeaks] stores peak coordinates as branches in tree
+        Switch on/off with pfON
+        -> when off:  set peakX/Yarray[nCh][nPeaks] to zero
+        */
+        bool pfON = false;
+        if (i<15) {pfON = true;} // switch on/off peakfinder 
+        int sigma = 10; // sigma of searched peaks
+        Double_t thrPF = 0.1; // peakfinder threshold
+        TPolyMarker pm; // store polymarker showing peak position, print later
+        peakfinder(&hCh, nPeaks, sigma, thrPF, peakXarray[i], peakYarray[i], &pm, pfON);
+        // printf("X: %d %f %f %f %f \n",i,peakXarray[i][0],peakXarray[i][1],peakXarray[i][2],peakXarray[i][3]);
+        // printf("Y: %d %f %f %f %f \n",i,peakYarray[i][0],peakYarray[i][1],peakYarray[i][2],peakYarray[i][3]);
+
+        /*
+        __ temporary histogram hChtemp _______________________________________
+        Saving the histogram of that event into a temporary histogram hChtemp.
         These histograms are available outside of the channel-loop. If analysis using
-        the signals/events of multiple channels needs to be done, this can be accomplished
-        by using hChtemp after the channel-loop.*/
+        the signals/events of multiple channels needs to be done, this can be accomplished by using hChtemp after the channel-loop.
+        */
         hChtemp.at(i) = hCh;
 
-        /*Setting the signal time by using a constant fraction disriminator method.
+        /*
+        __ CFD _____________________________________________________________
+        Setting the signal time by using a constant fraction disriminator method.
         The SiPM and the trigger sinals are handled differently using different thresholds.*/
         if (i == 15){ //trigger
           t[i] = CDF(&hCh,0.5);
@@ -405,9 +461,11 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
           }
         }
 
-        /*The signals for events can be printed to a .pdf file called waves.pdf. The rate at
-        which the events are drawn to waves.pdf is set via the variable wavesPrintRate. Additional
-        requirements can be set in the if-statement to look at specific events only.*/
+        /*
+        __ Printing Wafevorms ________________________________________________________
+        The signals for events can be printed to a .pdf file called waves.pdf. The rate at
+        which the events are drawn to waves.pdf is set via the variable wavesPrintRate. Additional requirements can be set in the if-statement to look at specific events only.
+        */
         if(EventNumber%wavesPrintRate==0){
           cWaves.cd(1+4*(i%4)+(i)/4);
           hCh.DrawCopy();
@@ -424,15 +482,24 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
           TLine* ln = new TLine(max_time,-2000,max_time,2000); //draw red 
           TLine* ln2 = new TLine(lower_time,-2000,lower_time,2000); //draw red 
           TLine* ln3 = new TLine(upper_time,-2000,upper_time,2000); //draw red vertical line at signal time
-          ln->SetLineColor(2);
-          ln2->SetLineColor(3);
-          ln3->SetLineColor(3);
+          ln->SetLineColor(kRed);
+          ln2->SetLineColor(kOrange);
+          ln3->SetLineColor(kOrange);
           ln->Draw("same");
           ln2->Draw("same");
           ln3->Draw("same");
+
+          TLine* BL_line = new TLine(0,BL_val[i],80,BL_val[i]);
+          BL_line->SetLineColor(kGreen);
+          BL_line->Draw("same");
+
+          // print peakfinders polymarker
+          if (pfON){pm.Draw();}
         }
 
-        /*There are several definitions of the integral of a signal used here. Those are:
+        /*
+        __ Integration ______________________________________________________
+        There are several definitions of the integral of a signal used here. Those are:
         - Integral_0_300: Integration over the entire time window (~320ns)
         - Integral: Integration over a smaller time window (~50ns) relative to the trigger*/
         Integral_0_300[i] = (hCh.Integral(1, 1024, "width")-BL[i]*1024*SP);
@@ -481,6 +548,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       if(isTrig==1&&max[5]<1240)isGoodSignal_5=1;
       else isGoodSignal_5=0;
       */
+
       /*Saving the plotted signals/events to a new page in the .pdf file.*/
       if(EventNumber%wavesPrintRate==0){
         if(wavePrintStatus<0){
@@ -507,6 +575,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       /*Writing the data for that event to the tree.*/
       tree->Fill();
     }
+    fclose(pFILE);
   }
 
   /*Clearing objects and saving files.*/
