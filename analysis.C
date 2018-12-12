@@ -3,6 +3,9 @@
 #include <TF1.h>
 #include <TMath.h>
 #include <TString.h>
+#include <TSpectrum.h>
+#include <TPolyMarker.h>
+#include <TList.h>
 
 //C, C++
 #include <math.h>
@@ -128,7 +131,11 @@ float* getBL(TH1F* hWave, float* BL, float t1, float t2){
   BL[1] = TMath::RMS(amp.begin(), amp.end());
   return BL;
 }
-
+/* 
+__ Baseline Fit______________________________________________________________
+Uses fit of a constant to a given range of the event histogram to calculate baseline.
+Other then that same as "getBL" only that float-array holds baseline value, error and chi2/ndf.
+*/
 float* BL_fit(TH1F* hWave, float* BL_chi2, float t1, float t2){
 
   // TF1 *f_const = new TF1("f_const","[0]",t1,t2);
@@ -170,4 +177,37 @@ double correction_function(double x){
     6.88509*TMath::Power(10,-35)*TMath::Power(x,8) +
     1.10249*TMath::Power(10,-40)*TMath::Power(x,9) -
     7.61427*TMath::Power(10,-47)*TMath::Power(x,10));
+}
+
+/*
+__ Peakfinder ________________________________________________________________
+Find up to nPeaks peaks in the waveform hWave. Uses TSpectrum class.
+X,Y coordinates are stored in X/Yarray. These arrays should have length [nPeaks].
+pfMarker: stores grafics info to print markers to show positions of found peaks
+pfON: switch on/off peakfinder algorithm 
+Peakfinder parameters:
+  sigma: set corresponding to width of searched peaks
+  thr: all peaks that are below thr*(maximum amplitude of wf) will be ignored
+  nPeaks: maximum number of peaks that will be stored
+*/
+void peakfinder(TH1F *hWave, int nPeaks, int sigma, double thr, double *Xarray, double *Yarray, TPolyMarker *pfMarker, bool pfON)
+{
+  if (pfON)
+  {
+    TSpectrum *s = new TSpectrum(nPeaks);
+    Int_t nfound = s->Search(hWave,sigma,"nodraw", thr);
+
+    // retrieve polymarker showing peak position to draw in pdf
+    TList *functions = hWave->GetListOfFunctions();
+    TPolyMarker *pm;
+    pm = (TPolyMarker*)functions->FindObject("TPolyMarker");
+    pm->Copy(*pfMarker);  
+
+    Double_t *xpos = s->GetPositionX();
+    Double_t *ypos = s->GetPositionY();
+
+    for (int k = 0; k < nPeaks; ++k){ Xarray[k]=xpos[k]; Yarray[k]=ypos[k]; }
+  }
+  // if switched off set to zero
+  else{ for (int k = 0; k < nPeaks; ++k){ Xarray[k]=0; Yarray[k]=0; } }
 }

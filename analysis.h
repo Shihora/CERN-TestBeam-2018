@@ -2,6 +2,7 @@
 #define ANALYSIS
 
 #include <TString.h>
+#include <TPolyMarker.h>
 
 using namespace std;
 
@@ -14,5 +15,6 @@ float* getBL(TH1F* hWave, float* BL, float t1, float t2);
 float* BL_fit(TH1F* hWave, float* BL_chi2, float t1, float t2);
 float PE(TH1F* hWave, float calib_factor, float BL);
 double correction_function(double x);
+void peakfinder(TH1F *hWave, int nPeaks, int sigma, double thr, double *Xarray, double *Yarray, TPolyMarker *pfMarker, bool pfON);
 
 #endif
