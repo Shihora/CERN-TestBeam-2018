@@ -81,10 +81,10 @@ float Integrate_50ns(TH1F* hWave, float BL){
   Output: Integral in mV*ns as float
   */
 
-  hWave->GetXaxis()->SetRange(320,480); //set range to 100-150ns
+  hWave->GetXaxis()->SetRange(100.0/SP,150.0/SP); //set range to 100-150ns
   int max_bin = hWave->GetMaximumBin(); //bin-number corresponding to maximum in range 100-150ns
-  int lower_bin = max_bin - 64; //lower integration-limit set to 20ns before maximum
-  int upper_bin = max_bin + 96; //upper integration-limit set to 30ns before maximum
+  int lower_bin = max_bin - 20.0/SP; //lower integration-limit set to 20ns before maximum
+  int upper_bin = max_bin + 30.0/SP; //upper integration-limit set to 30ns before maximum
   hWave->GetXaxis()->SetRange(0,1024); //back to full range
 
   //consistency-check for 50ns integration range
@@ -93,7 +93,7 @@ float Integrate_50ns(TH1F* hWave, float BL){
   assert((upper_time-lower_time)==50.0);
 
   //return 50ns integral with subtracted baseline 
-  return hWave->Integral(lower_bin, upper_bin, "width") - BL*SP*160;
+  return hWave->Integral(lower_bin, upper_bin, "width") - BL*50.0;
 }
 
 float integral(TH1F* hWave,float t1,float t2,float BL){
@@ -148,7 +148,7 @@ float PE(TH1F* hWave, float calib_factor, float BL){
   double r1=0;
   double r2=0;
 
-  hWave->GetXaxis()->SetRange(320,480);
+  hWave->GetXaxis()->SetRange(320,480); //window from 100ns-150ns
   r1=hWave->GetMaximumBin()*SP-0.5;
   r2=r1+1;
 
