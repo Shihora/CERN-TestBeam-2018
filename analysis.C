@@ -150,6 +150,9 @@ float* BL_fit(TH1F* hWave, float* BL_chi2, float t1, float t2){
   return BL_chi2;
 }
 
+/*
+__ Get Amplitude ________________________________________
+*/
 float PE(TH1F* hWave, float calib_factor, float BL){
   TF1* f1 = new TF1("f1","pol0",100,300);
   double r1=0;
