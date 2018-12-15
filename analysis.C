@@ -5,7 +5,6 @@
 #include <TString.h>
 #include <TSpectrum.h>
 #include <TPolyMarker.h>
-#include <TList.h>
 
 //C, C++
 #include <math.h>
@@ -150,6 +149,12 @@ float* BL_fit(TH1F* hWave, float* BL_chi2, float t1, float t2){
   return BL_chi2;
 }
 
+/*
+__ Get Amplitude ________________________________________
+Returns amplitude value of maximum in 100-150 ns window
+using a constant fit over a 0.5 ns range around the maximum.
+Value is basline-corrected and converted to units of p.e. 
+*/
 float PE(TH1F* hWave, float calib_factor, float BL){
   TF1* f1 = new TF1("f1","pol0",100,300);
   double r1=0;
@@ -164,6 +169,19 @@ float PE(TH1F* hWave, float calib_factor, float BL){
   hWave->GetXaxis()->SetRange(1,1024);
 
   return pe;
+}
+
+/*
+__ Convert mV to npe _______________________________________________
+Value is basline-corrected and converted to units of p.e. 
+*/
+double amp2pe(double y, float calib_factor, float BL_upper, float BL_lower, float BL_Chi2_upper, float BL_Chi2_lower)
+{
+  if (BL_Chi2_upper <= BL_Chi2_lower)
+      {y = (y-BL_upper) / calib_factor;}
+  else{y = (y-BL_lower) / calib_factor;}
+
+  return y;
 }
 
 double correction_function(double x){
@@ -183,6 +201,7 @@ double correction_function(double x){
 __ Peakfinder ________________________________________________________________
 Find up to nPeaks peaks in the waveform hWave. Uses TSpectrum class.
 X,Y coordinates are stored in X/Yarray. These arrays should have length [nPeaks].
+Peakfinder is applied inside range t1<->t2 in ns.
 pfMarker: stores grafics info to print markers to show positions of found peaks
 pfON: switch on/off peakfinder algorithm 
 Peakfinder parameters:
@@ -190,10 +209,14 @@ Peakfinder parameters:
   thr: all peaks that are below thr*(maximum amplitude of wf) will be ignored
   nPeaks: maximum number of peaks that will be stored
 */
-void peakfinder(TH1F *hWave, int nPeaks, int sigma, double thr, double *Xarray, double *Yarray, TPolyMarker *pfMarker, bool pfON)
+void peakfinder(TH1F *hWave, float t1, float t2, int nPeaks, int sigma, double thr, double *Xarray, double *Yarray, TPolyMarker *pfMarker, bool pfON)
 {
   if (pfON)
-  {
+  { 
+    hWave->GetXaxis()->SetRange(t1/SP,t2/SP);
+
+    // search peaks
+    // gErrorIgnoreLevel = kError; // suppress root terminal output 
     TSpectrum *s = new TSpectrum(nPeaks);
     Int_t nfound = s->Search(hWave,sigma,"nodraw", thr);
 
@@ -210,4 +233,6 @@ void peakfinder(TH1F *hWave, int nPeaks, int sigma, double thr, double *Xarray, 
   }
   // if switched off set to zero
   else{ for (int k = 0; k < nPeaks; ++k){ Xarray[k]=0; Yarray[k]=0; } }
+
+  hWave->GetXaxis()->SetRange(1,1024);
 }

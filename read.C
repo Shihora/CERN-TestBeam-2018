@@ -18,6 +18,7 @@
 #include <TText.h>
 #include <TSpectrum.h> // peakfinder
 #include <TPolyMarker.h> // peakfinder
+#include <TError.h> // root verbosity level
 //#include <TStyle.h>
 
 //C, C++
@@ -430,14 +431,28 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         Switch on/off with pfON
         -> when off:  set peakX/Yarray[nCh][nPeaks] to zero
         */
+        gErrorIgnoreLevel = kError; // suppress root terminal output 
+
         bool pfON = false;
         if (i<15) {pfON = false;} // switch on/off peakfinder 
         int sigma = 10; // sigma of searched peaks
         Double_t thrPF = 0.1; // peakfinder threshold
         TPolyMarker pm; // store polymarker showing peak position, print later
-        peakfinder(&hCh, nPeaks, sigma, thrPF, peakX[i], peakY[i], &pm, pfON);
-        // printf("X: %d %f %f %f %f \n",i,peakXarray[i][0],peakXarray[i][1],peakXarray[i][2],peakXarray[i][3]);
-        // printf("Y: %d %f %f %f %f \n",i,peakYarray[i][0],peakYarray[i][1],peakYarray[i][2],peakYarray[i][3]);
+        peakfinder(&hCh,0,320, nPeaks, sigma, thrPF, peakX[i], peakY[i], &pm, pfON);
+
+        gErrorIgnoreLevel = kUnset; // return to normal terminal output
+
+        // baseline-correct Y-values and convert to units of p.e.
+        if (pfON)
+        {
+          for (int j = 0; j < nPeaks; ++j)
+          {
+            peakY[i][j] = amp2pe(peakY[i][j], calib_amp_AB[i],BL_upper[i], BL_lower[i], BL_Chi2_upper[i], BL_Chi2_lower[i]);
+          }
+        }
+
+        // printf("X: %d %f %f %f %f \n",i,peakX[i][0],peakX[i][1],peakX[i][2],peakX[i][3]);
+        // printf("Y: %d %f %f %f %f \n",i,peakY[i][0],peakY[i][1],peakY[i][2],peakY[i][3]);
 
 
         /*
