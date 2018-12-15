@@ -43,7 +43,7 @@ float pe = 47.46;//mV*ns
 vector<float> pe_SiPM = {42.01, 34.67, 34.28, 33.84, 37.55, 34.68, 33.81, 38.84}; //sorted by Wavecatcher-Channel
 vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.754};
 vector<float> calib_amp_AB = {10.072,9.24254,8.88147,9.57771,9.58071,9.14965,9.53239,6.74035,9.62728,9.62879,10.0288,10.3354,9.75948,9.53048,9.68774,1};
-int wavesPrintRate = 100;
+int wavesPrintRate = 1000;
 int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
 int signalPrintRate = 100000;//100
@@ -431,7 +431,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         -> when off:  set peakX/Yarray[nCh][nPeaks] to zero
         */
         bool pfON = false;
-        if (i<15) {pfON = true;} // switch on/off peakfinder 
+        if (i<15) {pfON = false;} // switch on/off peakfinder 
         int sigma = 10; // sigma of searched peaks
         Double_t thrPF = 0.1; // peakfinder threshold
         TPolyMarker pm; // store polymarker showing peak position, print later

@@ -155,7 +155,7 @@ float PE(TH1F* hWave, float calib_factor, float BL){
   double r1=0;
   double r2=0;
 
-  hWave->GetXaxis()->SetRange(320,480); //window from 100ns-150ns
+  hWave->GetXaxis()->SetRange(100.0/SP,150.0/SP); //window from 100ns-150ns
   r1=hWave->GetMaximumBin()*SP-0.5;
   r2=r1+1;
 
