@@ -155,12 +155,12 @@ Returns amplitude value of maximum in 100-150 ns window
 using a constant fit over a 0.5 ns range around the maximum.
 Value is basline-corrected and converted to units of p.e. 
 */
-float PE(TH1F* hWave, float calib_factor, float BL){
+float PE(TH1F* hWave, float calib_factor, float BL, float t1, float t2){
   TF1* f1 = new TF1("f1","pol0",100,300);
   double r1=0;
   double r2=0;
 
-  hWave->GetXaxis()->SetRange(100.0/SP,150.0/SP); //window from 100ns-150ns
+  hWave->GetXaxis()->SetRange(t1/SP,t2/SP); //window from 100ns-150ns
   r1=hWave->GetMaximumBin()*SP-0.5;
   r2=r1+1;
 
