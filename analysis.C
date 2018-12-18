@@ -229,10 +229,15 @@ void peakfinder(TH1F *hWave, float t1, float t2, int nPeaks, int sigma, double t
     Double_t *xpos = s->GetPositionX();
     Double_t *ypos = s->GetPositionY();
 
-    for (int k = 0; k < nPeaks; ++k){ Xarray[k]=xpos[k]; Yarray[k]=ypos[k]; }
+    for (int k = 0; k < nPeaks; ++k)
+      { 
+        // store coordinate if peak is found
+        if (k < nfound) {Xarray[k]=xpos[k]; Yarray[k]=ypos[k];}
+        else {Xarray[k]=-999; Yarray[k]=-999;}
+      }
   }
   // if switched off set to zero
-  else{ for (int k = 0; k < nPeaks; ++k){ Xarray[k]=0; Yarray[k]=0; } }
+  else{ for (int k = 0; k < nPeaks; ++k){ Xarray[k]=-999; Yarray[k]=-999; } }
 
   hWave->GetXaxis()->SetRange(1,1024);
 }
