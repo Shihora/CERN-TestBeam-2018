@@ -160,7 +160,7 @@ float PE(TH1F* hWave, float calib_factor, float BL){
   double r1=0;
   double r2=0;
 
-  hWave->GetXaxis()->SetRange(320,480); //window from 100ns-150ns
+  hWave->GetXaxis()->SetRange(100.0/SP,150.0/SP); //window from 100ns-150ns
   r1=hWave->GetMaximumBin()*SP-0.5;
   r2=r1+1;
 
@@ -169,6 +169,28 @@ float PE(TH1F* hWave, float calib_factor, float BL){
   hWave->GetXaxis()->SetRange(1,1024);
 
   return pe;
+}
+
+
+/*
+__ Get Maximum in Range _________________________________
+Returns amplitude value of maximum in given range t1-t2
+using a constant fit over a 0.5 ns range around the maximum.
+*/
+float max_inRange(TH1F* hWave,float t1, float t2){
+  TF1* f1 = new TF1("f1","pol0",100,300);
+  double r1=0;
+  double r2=0;
+
+  hWave->GetXaxis()->SetRange(t1/SP,t2/SP); //window
+  r1=hWave->GetMaximumBin()*SP-0.5;
+  r2=r1+1;
+
+  hWave->Fit("f1","QN","",r1,r2);
+  float max = f1->GetParameter(0);
+  hWave->GetXaxis()->SetRange(1,1024);
+
+  return max;
 }
 
 /*

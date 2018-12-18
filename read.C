@@ -44,7 +44,7 @@ float pe = 47.46;//mV*ns
 vector<float> pe_SiPM = {42.01, 34.67, 34.28, 33.84, 37.55, 34.68, 33.81, 38.84}; //sorted by Wavecatcher-Channel
 vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.754};
 vector<float> calib_amp_AB = {10.072,9.24254,8.88147,9.57771,9.58071,9.14965,9.53239,6.74035,9.62728,9.62879,10.0288,10.3354,9.75948,9.53048,9.68774,1};
-int wavesPrintRate = 100;
+int wavesPrintRate = 5;
 int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
 int signalPrintRate = 100000;//100
@@ -126,6 +126,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Int_t WOMID[16];  //1=A, 2=B, 3=C, 4=D
   float PE_WOM1, PE_WOM2;
   std::vector<float> amp(16,-999);
+  std::vector<float> amp_inRange(16,-999);
   std::vector<float> max(16,-999);
   std::vector<float> min(16,-999);
   Float_t t[16];
@@ -140,7 +141,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   float BL_output[3];//array used for output getBL-function
   float Integral_0_300[16];//array used to store Integral of signal from 0 to 300ns
 
-  int nPeaks = 4; // maximum number of peaks to be stored by peakfinder
+  int nPeaks = 4; // maximum number of peaks to be stored by peakfinder; has to be set also when creating branch
   Double_t peakX[16][nPeaks];
   Double_t peakY[16][nPeaks];
 
@@ -236,6 +237,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("WOMID",WOMID,"WOMID[nCh]/I");
   tree->Branch("ch",ChannelNr, "ch[nCh]/I");
   tree->Branch("amp",amp.data(), "amp[nCh]/F");
+  tree->Branch("amp_inRange",amp_inRange.data(), "amp_inRange[nCh]/F");
   tree->Branch("max",max.data(), "max[nCh]/F");
   tree->Branch("min",min.data(), "min[nCh]/F");
   tree->Branch("t",t, "t[nCh]/F");
@@ -438,7 +440,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         int sigma = 10; // sigma of searched peaks
         Double_t thrPF = 0.1; // peakfinder threshold
         TPolyMarker pm; // store polymarker showing peak position, print later
-        peakfinder(&hCh,0,320, nPeaks, sigma, thrPF, peakX[i], peakY[i], &pm, pfON);
+        peakfinder(&hCh,0,130, nPeaks, sigma, thrPF, peakX[i], peakY[i], &pm, pfON);
 
         gErrorIgnoreLevel = kUnset; // return to normal terminal output
 
@@ -454,7 +456,14 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         // printf("X: %d %f %f %f %f \n",i,peakX[i][0],peakX[i][1],peakX[i][2],peakX[i][3]);
         // printf("Y: %d %f %f %f %f \n",i,peakY[i][0],peakY[i][1],peakY[i][2],peakY[i][3]);
 
-
+        /*
+        __ Max. Amplitude in Range __________________________________________
+        Record maximum amplitude in range before expected signal (100-130 ns)
+        */
+        amp_inRange[i] = max_inRange(&hCh,0,95);
+        // convert p.e. and BL-correct
+        amp_inRange[i] = amp2pe(amp_inRange, calib_amp_AB[i],BL_upper[i], BL_lower[i], BL_Chi2_upper[i], BL_Chi2_lower[i])
+        
         /*
         __ CFD _____________________________________________________________
         Setting the signal time by using a constant fraction disriminator method.
@@ -576,7 +585,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       else isGoodSignal_5=0;
       */
       /*Saving the plotted signals/events to a new page in the .pdf file.*/
-      if(EventNumber%wavesPrintRate==0){
+      if(EventNumber%wavesPrintRate==0) {
         if(wavePrintStatus<0){
           cWaves.Print((TString)(plotSaveFolder+"/waves.pdf("),"pdf");
           wavePrintStatus=0;
