@@ -436,7 +436,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         gErrorIgnoreLevel = kError; // suppress root terminal output 
 
         bool pfON = false;
-        if (i<15) {pfON = false;} // switch on/off peakfinder 
+        if (i<15) {pfON = true;} // switch on/off peakfinder 
         int sigma = 10; // sigma of searched peaks
         Double_t thrPF = 0.1; // peakfinder threshold
         TPolyMarker pm; // store polymarker showing peak position, print later
@@ -462,7 +462,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         */
         amp_inRange[i] = max_inRange(&hCh,0,95);
         // convert p.e. and BL-correct
-        amp_inRange[i] = amp2pe(amp_inRange, calib_amp_AB[i],BL_upper[i], BL_lower[i], BL_Chi2_upper[i], BL_Chi2_lower[i])
+        amp_inRange[i] = amp2pe(amp_inRange[i], calib_amp_AB[i],BL_upper[i], BL_lower[i], BL_Chi2_upper[i], BL_Chi2_lower[i]);
         
         /*
         __ CFD _____________________________________________________________
