@@ -517,6 +517,31 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         }
 
         /*
+        __Print Raw Data to .txt ______________________________________________
+        Select channel. Prints histogram raw data in a two column text file
+        */
+
+        // if (i==4 && BL_chi2[4]<1.7 && BL_chi2[4]>0.7)
+        // if (i==4)
+        // {
+        //   TString histDataName;
+        //   histDataName.Form("Ch%d_hist_data.txt",i);
+        //   TString path2hist_data;
+        //   path2hist_data.Form("%s/%s",(const char*)plotSaveFolder,(const char*)histDataName);
+        //   FILE * histOut;
+        //   histOut = fopen(path2hist_data,"a"); // produces overhead, maybe put this infront of loop
+          
+        //   Int_t nbins_x = hCh.GetNbinsX(); // bins at k==0 and k==nbins_x seem to have BinContent==0
+        //   for (Int_t k=1; k<=nbins_x; k++)
+        //   {
+        //     fprintf(histOut,"%.4f %.8f\n",
+        //     hCh.GetBinLowEdge(k)+hCh.GetBinWidth(k)/2,
+        //     hCh.GetBinContent(k));
+        //   }
+        //   fclose(histOut);
+        // }
+
+        /*
         __ Integral & Amplitude ________________________________________
         There are several definitions of the integral of a signal used here. Those are:
         - Integral_0_300: Integration over the entire time window (~320ns)
