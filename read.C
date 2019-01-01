@@ -127,6 +127,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   float PE_WOM1, PE_WOM2;
   std::vector<float> amp(16,-999);
   std::vector<float> amp_inRange(16,-999);
+  std::vector<float> amp_BL(16,-999);
   std::vector<float> max(16,-999);
   std::vector<float> min(16,-999);
   Float_t t[16];
@@ -138,6 +139,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Float_t BL_upper[16];//store baseline for 16 channels for 220-320ns range
   Float_t BL_RMS_upper[16];//store rms of baseline for 16 channels for 220-320ns range
   Float_t BL_Chi2_upper[16];//store chi2/dof of baseline-fit for 16 channels for 220-320ns range
+
+  Float_t BL_used[16];
+  Float_t BL_Chi2_used[16];
+
   float BL_output[3];//array used for output getBL-function
   float Integral_0_300[16];//array used to store Integral of signal from 0 to 300ns
 
@@ -238,6 +243,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("ch",ChannelNr, "ch[nCh]/I");
   tree->Branch("amp",amp.data(), "amp[nCh]/F");
   tree->Branch("amp_inRange",amp_inRange.data(), "amp_inRange[nCh]/F");
+  tree->Branch("amp_BL",amp_BL.data(), "amp_BL[nCh]/F");
   tree->Branch("max",max.data(), "max[nCh]/F");
   tree->Branch("min",min.data(), "min[nCh]/F");
   tree->Branch("t",t, "t[nCh]/F");
@@ -250,6 +256,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("BL_upper", BL_upper, "BL_upper[nCh]/F");
   tree->Branch("BL_RMS_upper", BL_RMS_upper, "BL_RMS_upper[nCh]/F");
   tree->Branch("BL_Chi2_upper", BL_Chi2_upper, "BL_Chi2_upper[nCh]/F");
+  tree->Branch("BL_used", BL_used, "BL_used[nCh]/F");
+  tree->Branch("BL_Chi2_used", BL_Chi2_used, "BL_Chi2_used[nCh]/F");
   tree->Branch("peakX",peakX,"peakX[nCh][4]/D");
   tree->Branch("peakY",peakY,"peakY[nCh][4]/D");
   tree->Branch("Integral_0_300", Integral_0_300, "Integral_0_300[nCh]/F");
@@ -553,12 +561,22 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         if (BL_Chi2_upper[i] <= BL_Chi2_lower[i]){
         	Integral[i] = Integrate_50ns(&hCh, BL_upper[i]);
         	amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_upper[i], 100.0, 150.0);
+          BL_used[i] = BL_upper[i];
+          BL_Chi2_used[i] = BL_Chi2_upper[i];
+          // amp[i] = PE(&hCh,calib_amp_AB.at(i),-0.182, 100.0, 150.0);
         }
         else{
         	Integral[i] = Integrate_50ns(&hCh, BL_lower[i]);
          	amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_lower[i], 100.0, 150.0);
+          BL_used[i] = BL_lower[i];
+          BL_Chi2_used[i] = BL_Chi2_lower[i];
+          // amp[i] = PE(&hCh,calib_amp_AB.at(i),-0.182, 100.0, 150.0);
         }
 
+        hCh.GetXaxis()->SetRange(0./SP,75./SP);
+        int max_bin = hCh.GetMaximumBin();
+        amp_BL[i] = hCh.GetBinContent(max_bin);
+        hCh.GetXaxis()->SetRange(0,1024);
       // End of loop over inividual channels
       }
 
