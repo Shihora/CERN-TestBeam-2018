@@ -46,6 +46,8 @@ vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.7
 vector<float> calib_amp_AB = {10.0024,9.24254,9.08902,10.0149,9.95047,9.55901,10.1483,10.4179,10.0141,9.92513,10.4975,10.422,10.1208,10.1884,10.1682,1};
 vector<float> calib_amp_AB_max = {9.91652,8.86927,8.88147,9.57771,9.58071,9.14965,9.53239,10.1344,9.62728,9.62879,10.0288,10.3354,9.75948,9.53048,9.68774,1};
 int wavesPrintRate = 1000;
+int sumWOMAPrintRate = 1000;
+int sumWOMBPrintRate = 1000;
 int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
 int signalPrintRate = 100000;//100
@@ -118,6 +120,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Float_t t2t3 = -999;//t2t3 = [(t2-t3)]
   Int_t isVeto = -999; //variable to define veto, 1 if veto, 0 if not, -999 if undefined
   Int_t isTrig = -999;
+  Float_t tsumWOMA_invCFD = -999;
+  Float_t tsumWOMB_invCFD = -999;
+  Float_t tsumWOMA_invCFD_wrtTrig = -999;
+  Float_t tsumWOMB_invCFD_wrtTrig = -999;
   Int_t isLastEvt = -999;
   Int_t isGoodSignal_5 = -999;
   Float_t trigGate = -999;
@@ -198,6 +204,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   plotSaveFolder.ReplaceAll("out.root","");
   TCanvas cWaves("cWaves","cWaves",1000,700);
   cWaves.Divide(4,4);
+  TCanvas csumWOMA("csumWOMA","csumWOMA",1000,700);
+  csumWOMA.Divide(4,2);
+  TCanvas csumWOMB("csumWOMB","csumWOMB",1000,700);
+  csumWOMB.Divide(3,3);
   TCanvas cCh0("cCh0","cCh0",1500,900);
   cCh0.Divide(2,2);
   TCanvas cTrig("cTrig","cTrig",1500,900);
@@ -242,6 +252,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("t2t3",&t2t3, "t2t3/F");
   tree->Branch("isVeto",&isVeto,"isVeto/I");
   tree->Branch("isTrig",&isTrig,"isTrig/I");
+  tree->Branch("tsumWOMA_invCFD",&tsumWOMA_invCFD,"tsumWOMA_invCFD/F");
+  tree->Branch("tsumWOMB_invCFD",&tsumWOMB_invCFD,"tsumWOMB_invCFD/F");
+  tree->Branch("tsumWOMA_invCFD_wrtTrig",&tsumWOMA_invCFD_wrtTrig,"tsumWOMA_invCFD_wrtTrig/F");
+  tree->Branch("tsumWOMB_invCFD_wrtTrig",&tsumWOMB_invCFD_wrtTrig,"tsumWOMB_invCFD_wrtTrig/F");  
   tree->Branch("isGoodSignal_5",&isGoodSignal_5,"isGoodSignal_5/I");
   tree->Branch("nCh",&nCh, "nCh/I");
   tree->Branch("WOMID",WOMID,"WOMID[nCh]/I");
@@ -492,9 +506,9 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
           t[i] = CDF(&hCh,0.5);
         }
         else { //SiPMs
-          t[i] = CDF(&hCh,0.1);
-          if (t[i] < 75){
-            t[i] = CDFinvert(&hCh,0.3);
+          t[i] = CDF2(&hCh,0.35);
+          if (t[i] < 95){
+            t[i] = CDFinvert2(&hCh,0.35);
           }
         }
 
@@ -524,6 +538,14 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         //   }
         //   fclose(histOut);
         // }
+      if(EventNumber%sumWOMAPrintRate==0&&i<7){
+          csumWOMA.cd(i+1);
+          hCh.DrawCopy();
+      }
+      if(EventNumber%sumWOMBPrintRate==0&&i>6){
+         csumWOMB.cd(i-6);
+         hCh.DrawCopy();
+      }
 
         /*
         __ Integral & Amplitude ________________________________________
@@ -619,6 +641,36 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         }
         */
       }
+
+      /* Filling Sum Histograms for WOM A and B and determine time Resolution */
+      TH1F hSumA("hSumA","Sum A;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
+      for(int hSumIndexA=0;hSumIndexA<7;hSumIndexA++){
+        hSumA.Add(&hChtemp.at(hSumIndexA),1);
+      }
+      csumWOMA.cd(8);
+      hSumA.DrawCopy();
+
+      tsumWOMA_invCFD = CFDinvert2(&hSumA,0.4);
+      tsumWOMA_invCFD_wrtTrig = trigT-tsumWOMA_invCFD;
+
+      TH1F hSumB("hSumB","Sum B;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
+      for(int hSumIndexB=7;hSumIndexB<15;hSumIndexB++){
+        hSumB.Add(&hChtemp.at(hSumIndexB),1);
+      }
+      csumWOMB.cd(9);
+      hSumB.DrawCopy();
+
+      tsumWOMB_invCFD = CFDinvert2(&hSumB,0.4);
+      tsumWOMB_invCFD_wrtTrig = trigT-tsumWOMB_invCFD;
+      /* end */
+
+      /*temporary for cfdScan_
+      if (PE_WOM2 >= 5){    //Switch PE_WOM of you want WOM 1 or 2
+        for(int i=0;i<N_CFD_points;i++){
+          v_hTimeRes.at(i)->Fill(trigT-CFD2(&hSumB,0.01*i)); // Switch hSumA or B or CFD2 or CFDinvert2
+        }
+      }
+      *///temporary end
       
       /*
       trigGate = abs(*(std::max_element(t,t+4))-*(std::min_element(t,t+4)));  
@@ -650,6 +702,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       if(isTrig==1&&max[5]<1240)isGoodSignal_5=1;
       else isGoodSignal_5=0;
       */
+
       /*Saving the plotted signals/events to a new page in the .pdf file.*/
       if(EventNumber%wavesPrintRate==0) {
         if(wavePrintStatus<0){
@@ -657,6 +710,20 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
           wavePrintStatus=0;
         }
         else cWaves.Print((TString)(plotSaveFolder+"/waves.pdf"),"pdf");
+      }
+      if(EventNumber%sumWOMAPrintRate==0){
+        if(sumWOMAPrintStatus<0){
+          csumWOMA.Print((TString)(plotSaveFolder+"/sumWOMA.pdf("),"pdf");
+          sumWOMAPrintStatus=0;
+        }
+        else csumWOMA.Print((TString)(plotSaveFolder+"/sumWOMA.pdf"),"pdf");
+      }
+      if(EventNumber%sumWOMBPrintRate==0){
+        if(sumWOMBPrintStatus<0){
+           csumWOMB.Print((TString)(plotSaveFolder+"/sumWOMB.pdf("),"pdf");
+           sumWOMBPrintStatus=0;
+        }
+        else csumWOMB.Print((TString)(plotSaveFolder+"/sumWOMB.pdf"),"pdf");
       }
       if(EventNumber%trigPrintRate==0){
         if(trigPrintStatus<0){
@@ -683,9 +750,37 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   inList.close();
   cWaves.Clear();
   cWaves.Print((TString)(plotSaveFolder+"/waves.pdf)"),"pdf");
+  csumWOMA.Clear();
+  csumWOMA.Print((TString)(plotSaveFolder+"/sumWOMA.pdf)"),"pdf");
+  csumWOMB.Clear();
+  csumWOMB.Print((TString)(plotSaveFolder+"/sumWOMB.pdf)"),"pdf");
   cCh0.Print((TString)(plotSaveFolder+"/ch0.pdf)"),"pdf");
   cTrig.Print((TString)(plotSaveFolder+"/trig.pdf)"),"pdf");
   cSignal.Print((TString)(plotSaveFolder+"/signal.pdf)"),"pdf");
+
+  /* temporary for cfdScan
+  TH1F* sigma_timeRes_Fit = new TH1F("sigma_timeRes_Fit",";CFD threshold;Timeresolution, ns",N_CFD_points,0,0.01*N_CFD_points);
+  TF1* fGaus = new TF1("fGaus","gaus",45,60);
+  fGaus->SetLineWidth(1);
+  TCanvas c_TimeRes("c_TimeRes");
+  for(int i=0;i<N_CFD_points;i++){
+    c_TimeRes.cd();
+    v_hTimeRes.at(i)->Draw();
+    v_hTimeRes.at(i)->Fit("fGaus","R");
+    sigma_timeRes_Fit->SetBinContent(i+1,fGaus->GetParameter(2));
+    sigma_timeRes_Fit->SetBinError(i+1,fGaus->GetParError(2));
+    TString name("");
+    name.Form("hTimeRes%d.png",i);
+    c_TimeRes.Print((TString)(plotSaveFolder+"/"+name));
+  }
+  c_TimeRes.cd();
+  sigma_timeRes_Fit->SetMarkerSize(1);
+  sigma_timeRes_Fit->SetMarkerStyle(20);
+  sigma_timeRes_Fit->SetLineColor(kRed);
+  //c_TimeRes.Print((TString)("/home/maximilian/Dokumente/Arbeit/CERNTestBeam2018/Auswertung/CERN-TestBeam-2018/cfd-scan/"+name));
+  c_TimeRes.Write();
+  */// temporary end
+
   rootFile = tree->GetCurrentFile();
   rootFile->Write();
   rootFile->Close();
