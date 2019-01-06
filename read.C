@@ -43,7 +43,8 @@ float pe = 47.46;//mV*ns
 //vector<float> pe_SiPM = {32.14, 39.33, 34.20, 30.79, 34.09, 29.99, 30.69, 29.95}; //a,b,c,d,e,f,g,h  -  Gain-Baseline from fit
 vector<float> pe_SiPM = {42.01, 34.67, 34.28, 33.84, 37.55, 34.68, 33.81, 38.84}; //sorted by Wavecatcher-Channel
 vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.754};
-vector<float> calib_amp_AB = {10.072,9.24254,8.88147,9.57771,9.58071,9.14965,9.53239,6.74035,9.62728,9.62879,10.0288,10.3354,9.75948,9.53048,9.68774,1};
+vector<float> calib_amp_AB = {10.0024,9.24254,9.08902,10.0149,9.95047,9.55901,10.1483,10.4179,10.0141,9.92513,10.4975,10.422,10.1208,10.1884,10.1682,1};
+vector<float> calib_amp_AB_max = {9.91652,8.86927,8.88147,9.57771,9.58071,9.14965,9.53239,10.1344,9.62728,9.62879,10.0288,10.3354,9.75948,9.53048,9.68774,1};
 int wavesPrintRate = 1000;
 int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
@@ -126,6 +127,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Int_t WOMID[16];  //1=A, 2=B, 3=C, 4=D
   float PE_WOM1, PE_WOM2;
   std::vector<float> amp(16,-999);
+  std::vector<float> amp_max(16,-999);
   std::vector<float> amp_inRange(16,-999);
   std::vector<float> amp_BL(16,-999);
   std::vector<float> max(16,-999);
@@ -136,14 +138,17 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Float_t BL_lower[16];//store baseline for 16 channels for 0-75ns range
   Float_t BL_RMS_lower[16];//store rms of baseline for 16 channels for 0-75ns range
   Float_t BL_Chi2_lower[16];//store chi2/dof of baseline-fit for 16 channels for 0-75ns range
+  Float_t BL_pValue_lower[16];
   Float_t BL_upper[16];//store baseline for 16 channels for 220-320ns range
   Float_t BL_RMS_upper[16];//store rms of baseline for 16 channels for 220-320ns range
   Float_t BL_Chi2_upper[16];//store chi2/dof of baseline-fit for 16 channels for 220-320ns range
+  Float_t BL_pValue_upper[16];
 
   Float_t BL_used[16];
   Float_t BL_Chi2_used[16];
+  Float_t BL_pValue_used[16];
 
-  float BL_output[3];//array used for output getBL-function
+  float BL_output[4];//array used for output getBL-function
   float Integral_0_300[16];//array used to store Integral of signal from 0 to 300ns
 
   int nPeaks = 4; // maximum number of peaks to be stored by peakfinder; has to be set also when creating branch
@@ -242,6 +247,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("WOMID",WOMID,"WOMID[nCh]/I");
   tree->Branch("ch",ChannelNr, "ch[nCh]/I");
   tree->Branch("amp",amp.data(), "amp[nCh]/F");
+  tree->Branch("amp_max",amp_max.data(), "amp_max[nCh]/F");
   tree->Branch("amp_inRange",amp_inRange.data(), "amp_inRange[nCh]/F");
   tree->Branch("amp_BL",amp_BL.data(), "amp_BL[nCh]/F");
   tree->Branch("max",max.data(), "max[nCh]/F");
@@ -253,11 +259,14 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("BL_lower", BL_lower, "BL_lower[nCh]/F");
   tree->Branch("BL_RMS_lower", BL_RMS_lower, "BL_RMS_lower[nCh]/F");
   tree->Branch("BL_Chi2_lower", BL_Chi2_lower, "BL_Chi2_lower[nCh]/F");
+  tree->Branch("BL_pValue_lower", BL_pValue_lower, "BL_pValue_lower[nCh]/F");
   tree->Branch("BL_upper", BL_upper, "BL_upper[nCh]/F");
   tree->Branch("BL_RMS_upper", BL_RMS_upper, "BL_RMS_upper[nCh]/F");
   tree->Branch("BL_Chi2_upper", BL_Chi2_upper, "BL_Chi2_upper[nCh]/F");
+  tree->Branch("BL_pValue_upper", BL_pValue_upper, "BL_pValue_upper[nCh]/F");
   tree->Branch("BL_used", BL_used, "BL_used[nCh]/F");
   tree->Branch("BL_Chi2_used", BL_Chi2_used, "BL_Chi2_used[nCh]/F");
+  tree->Branch("BL_pValue_used", BL_pValue_used, "BL_pValue_used[nCh]/F");
   tree->Branch("peakX",peakX,"peakX[nCh][4]/D");
   tree->Branch("peakY",peakY,"peakY[nCh][4]/D");
   tree->Branch("Integral_0_300", Integral_0_300, "Integral_0_300[nCh]/F");
@@ -428,11 +437,13 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         BL_lower[i] = BL_output[0];
         BL_RMS_lower[i] = BL_output[1];
         BL_Chi2_lower[i] = BL_output[2];
+        BL_pValue_lower[i] = BL_output[3];
         BL_fit(&hChtemp.at(i), BL_output, 220.0, 320.0);
         BL_upper[i] = BL_output[0];
         BL_RMS_upper[i] = BL_output[1];
         BL_Chi2_upper[i] = BL_output[2];
-	  
+        BL_pValue_upper[i] = BL_output[3];
+
         /*
         __ Peakfinder _________________________________________________________
         Implemented to search double-muon-event candiates
@@ -444,7 +455,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         gErrorIgnoreLevel = kError; // suppress root terminal output 
 
         bool pfON = false;
-        if (i<15) {pfON = true;} // switch on/off peakfinder 
+        if (i<15) {pfON = false;} // switch on/off peakfinder 
         int sigma = 10; // sigma of searched peaks
         Double_t thrPF = 0.1; // peakfinder threshold
         TPolyMarker pm; // store polymarker showing peak position, print later
@@ -487,42 +498,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
           }
         }
 
-        /*
-        __ Printing Wafevorms ____________________________________________
-        The signals for events can be printed to a .pdf file called waves.pdf. The rate at which the events are drawn to waves.pdf is set via the variable wavesPrintRate. Additional requirements can be set in the if-statement to look at specific events only.
-        The entire if-statement so far also plots lines at the found signal maximum, the corresponding integration limit, as well as the BL values to each of the histograms.
-        */
-        if(EventNumber%wavesPrintRate==0){
-          cWaves.cd(1+4*(i%4)+(i)/4);
-          hCh.DrawCopy();
-          hCh.GetXaxis()->SetRange(100.0/SP,150.0/SP);
-          int max_bin = hCh.GetMaximumBin();
-          int lower_bin = max_bin - 20.0/SP;
-          int upper_bin = max_bin + 30.0/SP;
-          // double x = h->GetXaxis()->GetBinCenter(binmax);
-          float max_time = hCh.GetXaxis()->GetBinCenter(max_bin);
-          float lower_time = hCh.GetXaxis()->GetBinCenter(lower_bin);
-          float upper_time = hCh.GetXaxis()->GetBinCenter(upper_bin);
-          hCh.GetXaxis()->SetRange(0,1024);
-          TLine* ln = new TLine(max_time,-2000,max_time,2000);
-          TLine* ln2 = new TLine(lower_time,-2000,lower_time,2000);
-          TLine* ln3 = new TLine(upper_time,-2000,upper_time,2000);
-          TLine* ln4 = new TLine(0,BL_lower[i],75,BL_lower[i]);
-          TLine* ln5 = new TLine(220,BL_upper[i],320,BL_upper[i]);
-          TText *text = new TText(.5,.5,Form("%f %f",BL_lower[i],BL_upper[i]));
-          ln->SetLineColor(2);
-          ln2->SetLineColor(3);
-          ln3->SetLineColor(3);
-          ln4->SetLineColor(2);
-          ln5->SetLineColor(2);
-          ln->Draw("same");
-          ln2->Draw("same");
-          ln3->Draw("same");
-          ln4->Draw("same");
-          ln5->Draw("same");
-          text->Draw("same");
-          if (pfON){pm.Draw();} // print peakfinders polymarker
-        }
+
 
         /*
         __Print Raw Data to .txt ______________________________________________
@@ -563,14 +539,22 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         	amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_upper[i], 100.0, 150.0);
           BL_used[i] = BL_upper[i];
           BL_Chi2_used[i] = BL_Chi2_upper[i];
-          // amp[i] = PE(&hCh,calib_amp_AB.at(i),-0.182, 100.0, 150.0);
+          BL_pValue_used[i] = BL_pValue_upper[i];
+          hCh.GetXaxis()->SetRange(100./SP,150./SP);
+          int max_bin = hCh.GetMaximumBin();
+          amp_max[i] = (hCh.GetBinContent(max_bin)-BL_upper[i])/calib_amp_AB_max.at(i);
+          hCh.GetXaxis()->SetRange(0,1024);
         }
         else{
         	Integral[i] = Integrate_50ns(&hCh, BL_lower[i]);
          	amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_lower[i], 100.0, 150.0);
           BL_used[i] = BL_lower[i];
           BL_Chi2_used[i] = BL_Chi2_lower[i];
-          // amp[i] = PE(&hCh,calib_amp_AB.at(i),-0.182, 100.0, 150.0);
+          BL_pValue_used[i] = BL_pValue_lower[i];
+          hCh.GetXaxis()->SetRange(100./SP,150./SP);
+          int max_bin = hCh.GetMaximumBin();
+          amp_max[i] = (hCh.GetBinContent(max_bin)-BL_lower[i])/calib_amp_AB_max.at(i);
+          hCh.GetXaxis()->SetRange(0,1024);
         }
 
         hCh.GetXaxis()->SetRange(0./SP,75./SP);
@@ -578,6 +562,45 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         amp_BL[i] = hCh.GetBinContent(max_bin);
         hCh.GetXaxis()->SetRange(0,1024);
       // End of loop over inividual channels
+
+        /*
+        __ Printing Wafevorms ____________________________________________
+        The signals for events can be printed to a .pdf file called waves.pdf. The rate at which the events are drawn to waves.pdf is set via the variable wavesPrintRate. Additional requirements can be set in the if-statement to look at specific events only.
+        The entire if-statement so far also plots lines at the found signal maximum, the corresponding integration limit, as well as the BL values to each of the histograms.
+        */
+        if(EventNumber%wavesPrintRate==0){
+          cWaves.cd(1+4*(i%4)+(i)/4);
+          hCh.DrawCopy();
+          hCh.GetXaxis()->SetRange(100.0/SP,150.0/SP);
+          int max_bin = hCh.GetMaximumBin();
+          int lower_bin = max_bin - 20.0/SP;
+          int upper_bin = max_bin + 30.0/SP;
+          // double x = h->GetXaxis()->GetBinCenter(binmax);
+          float max_time = hCh.GetXaxis()->GetBinCenter(max_bin);
+          float lower_time = hCh.GetXaxis()->GetBinCenter(lower_bin);
+          float upper_time = hCh.GetXaxis()->GetBinCenter(upper_bin);
+          hCh.GetXaxis()->SetRange(0,1024);
+          TLine* ln = new TLine(max_time,-2000,max_time,2000);
+          TLine* ln2 = new TLine(lower_time,-2000,lower_time,2000);
+          TLine* ln3 = new TLine(upper_time,-2000,upper_time,2000);
+          TLine* ln4 = new TLine(0,BL_lower[i],75,BL_lower[i]);
+          TLine* ln5 = new TLine(220,BL_upper[i],320,BL_upper[i]);
+          TText *text = new TText(.5,.5,Form("%f %f",BL_lower[i],BL_upper[i]));
+          TText *text2 = new TText(max_time+3,amp[i]+1,Form("%f %f",amp[i], BL_used[i]));
+          ln->SetLineColor(2);
+          ln2->SetLineColor(3);
+          ln3->SetLineColor(3);
+          ln4->SetLineColor(2);
+          ln5->SetLineColor(2);
+          ln->Draw("same");
+          ln2->Draw("same");
+          ln3->Draw("same");
+          ln4->Draw("same");
+          ln5->Draw("same");
+          text->Draw("same");
+          text2->Draw("same");
+          if (pfON){pm.Draw();} // print peakfinders polymarker
+        }
       }
 
       /*

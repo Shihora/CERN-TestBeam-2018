@@ -145,6 +145,7 @@ float* BL_fit(TH1F* hWave, float* BL_chi2, float t1, float t2){
   BL_chi2[0] = f_const->GetParameter(0);
   BL_chi2[1] = f_const->GetParError(0);
   BL_chi2[2] = f_const->GetChisquare()/f_const->GetNDF();
+  BL_chi2[3] = f_const->GetProb();
 
   return BL_chi2;
 }
