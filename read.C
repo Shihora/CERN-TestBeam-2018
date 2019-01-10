@@ -45,9 +45,10 @@ vector<float> pe_SiPM = {42.01, 34.67, 34.28, 33.84, 37.55, 34.68, 33.81, 38.84}
 vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.754};
 vector<float> calib_amp_AB = {10.0024,9.24254,9.08902,10.0149,9.95047,9.55901,10.1483,10.4179,10.0141,9.92513,10.4975,10.422,10.1208,10.1884,10.1682,1};
 vector<float> calib_amp_AB_max = {9.91652,8.86927,8.88147,9.57771,9.58071,9.14965,9.53239,10.1344,9.62728,9.62879,10.0288,10.3354,9.75948,9.53048,9.68774,1};
+
 int wavesPrintRate = 1000;
-int sumWOMAPrintRate = 1000;
-int sumWOMBPrintRate = 1000;
+int sumWOMAPrintRate = 1000000;
+int sumWOMBPrintRate = 1000000;
 int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
 int signalPrintRate = 100000;//100
@@ -297,6 +298,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   assert(inList.is_open());
 
   int wavePrintStatus=-1;
+  int sumWOMAPrintStatus=-1;
+  int sumWOMBPrintStatus=-1;
   int ch0PrintStatus=-1;
   int trigPrintStatus=-1;
   int signalPrintStatus=-1;
@@ -506,9 +509,9 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
           t[i] = CDF(&hCh,0.5);
         }
         else { //SiPMs
-          t[i] = CDF2(&hCh,0.35);
+          t[i] = CFD2(&hCh,0.35);
           if (t[i] < 95){
-            t[i] = CDFinvert2(&hCh,0.35);
+            t[i] = CFDinvert2(&hCh,0.35);
           }
         }
 
@@ -558,22 +561,24 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         Integral_0_300[i] = (hCh.Integral(1, 1024, "width")-0.0*1024*SP);
         if (BL_Chi2_upper[i] <= BL_Chi2_lower[i]){
         	Integral[i] = Integrate_50ns(&hCh, BL_upper[i]);
-        	amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_upper[i], 100.0, 150.0);
+        	// amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_upper[i], 100.0, 150.0);
+          amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_upper[i], t[i]-20, t[i]+30);
           BL_used[i] = BL_upper[i];
           BL_Chi2_used[i] = BL_Chi2_upper[i];
           BL_pValue_used[i] = BL_pValue_upper[i];
-          hCh.GetXaxis()->SetRange(100./SP,150./SP);
+          hCh.GetXaxis()->SetRange((t[i]-20)/SP,(t[i]+30)/SP);
           int max_bin = hCh.GetMaximumBin();
           amp_max[i] = (hCh.GetBinContent(max_bin)-BL_upper[i])/calib_amp_AB_max.at(i);
           hCh.GetXaxis()->SetRange(0,1024);
         }
         else{
         	Integral[i] = Integrate_50ns(&hCh, BL_lower[i]);
-         	amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_lower[i], 100.0, 150.0);
+         	// amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_lower[i], 100.0, 150.0);
+          amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_lower[i], t[i]-20, t[i]+30);
           BL_used[i] = BL_lower[i];
           BL_Chi2_used[i] = BL_Chi2_lower[i];
           BL_pValue_used[i] = BL_pValue_lower[i];
-          hCh.GetXaxis()->SetRange(100./SP,150./SP);
+          hCh.GetXaxis()->SetRange((t[i]-20)/SP,(t[i]+30)/SP);
           int max_bin = hCh.GetMaximumBin();
           amp_max[i] = (hCh.GetBinContent(max_bin)-BL_lower[i])/calib_amp_AB_max.at(i);
           hCh.GetXaxis()->SetRange(0,1024);
@@ -593,7 +598,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         if(EventNumber%wavesPrintRate==0){
           cWaves.cd(1+4*(i%4)+(i)/4);
           hCh.DrawCopy();
-          hCh.GetXaxis()->SetRange(100.0/SP,150.0/SP);
+          hCh.GetXaxis()->SetRange((t[i]-20)/SP,(t[i]+30)/SP);
           int max_bin = hCh.GetMaximumBin();
           int lower_bin = max_bin - 20.0/SP;
           int upper_bin = max_bin + 30.0/SP;
@@ -608,7 +613,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
           TLine* ln4 = new TLine(0,BL_lower[i],75,BL_lower[i]);
           TLine* ln5 = new TLine(220,BL_upper[i],320,BL_upper[i]);
           TText *text = new TText(.5,.5,Form("%f %f",BL_lower[i],BL_upper[i]));
-          TText *text2 = new TText(max_time+3,amp[i]+1,Form("%f %f",amp[i], BL_used[i]));
+          TText *text2 = new TText(max_time+3,amp[i]+1,Form("%f %f %f",amp[i], amp_max[i], BL_used[i]));
           ln->SetLineColor(2);
           ln2->SetLineColor(3);
           ln3->SetLineColor(3);
@@ -643,6 +648,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       }
 
       /* Filling Sum Histograms for WOM A and B and determine time Resolution */
+      /*
       TH1F hSumA("hSumA","Sum A;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
       for(int hSumIndexA=0;hSumIndexA<7;hSumIndexA++){
         hSumA.Add(&hChtemp.at(hSumIndexA),1);
@@ -662,6 +668,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
 
       tsumWOMB_invCFD = CFDinvert2(&hSumB,0.4);
       tsumWOMB_invCFD_wrtTrig = trigT-tsumWOMB_invCFD;
+      */
       /* end */
 
       /*temporary for cfdScan_
