@@ -562,8 +562,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         Integral_0_300[i] = (hCh.Integral(1, 1024, "width")-0.0*1024*SP);
         if (BL_Chi2_upper[i] <= BL_Chi2_lower[i]){
         	Integral[i] = Integrate_50ns(&hCh, BL_upper[i]);
-        	// amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_upper[i], 100.0, 150.0);
-          amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_upper[i], t[i]-20, t[i]+30);
+        	amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_upper[i], 100.0, 150.0);
+          // amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_upper[i], t[i]-20, t[i]+30);
           BL_used[i] = BL_upper[i];
           BL_Chi2_used[i] = BL_Chi2_upper[i];
           BL_pValue_used[i] = BL_pValue_upper[i];
@@ -574,8 +574,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         }
         else{
         	Integral[i] = Integrate_50ns(&hCh, BL_lower[i]);
-         	// amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_lower[i], 100.0, 150.0);
-          amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_lower[i], t[i]-20, t[i]+30);
+         	amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_lower[i], 100.0, 150.0);
+          // amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_lower[i], t[i]-20, t[i]+30);
           BL_used[i] = BL_lower[i];
           BL_Chi2_used[i] = BL_Chi2_lower[i];
           BL_pValue_used[i] = BL_pValue_lower[i];
