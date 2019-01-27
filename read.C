@@ -47,9 +47,9 @@ vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.7
 vector<float> calib_amp_AB = {6.748,6.16313,6.07082,6.68036,6.65783,6.37541,6.7711,6.85418,6.68469,6.58283,6.98329,6.97906,6.76493,6.75924,6.78279,1};
 vector<float> calib_amp_AB_max = {9.91652,8.86927,8.88147,9.57771,9.58071,9.14965,9.53239,10.1344,9.62728,9.62879,10.0288,10.3354,9.75948,9.53048,9.68774,1};
 
-int wavesPrintRate = 1000;
+int wavesPrintRate = 1;
 int sumWOMAPrintRate = 1000000;
-int sumWOMBPrintRate = 1000000;
+int sumWOMBPrintRate = 1;
 int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
 int signalPrintRate = 100000;//100
@@ -659,16 +659,25 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
 
       tsumWOMA_invCFD = CFDinvert2(&hSumA,0.4);
       tsumWOMA_invCFD_wrtTrig = trigT-tsumWOMA_invCFD;
-
+*/
       TH1F hSumB("hSumB","Sum B;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
       for(int hSumIndexB=7;hSumIndexB<15;hSumIndexB++){
+        TF1* f_const = new TF1("f_const","pol0",0,320);
+        f_const->SetParameter(0,BL_used[hSumIndexB]);
+
+        hChtemp.at(hSumIndexB).Add(f_const, -1);
+        hChtemp.at(hSumIndexB).Scale(1.0/calib_amp_AB.at(hSumIndexB));
+
         hSumB.Add(&hChtemp.at(hSumIndexB),1);
       }
+
+      PE_WOM2 = PE(&hSumB,1,0, 100.0, 150.0);
       csumWOMB.cd(9);
       hSumB.DrawCopy();
 
       tsumWOMB_invCFD = CFDinvert2(&hSumB,0.4);
       tsumWOMB_invCFD_wrtTrig = trigT-tsumWOMB_invCFD;
+/*
       */
       /* end */
 
@@ -712,7 +721,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       */
 
       /*Saving the plotted signals/events to a new page in the .pdf file.*/
-      if(EventNumber%wavesPrintRate==0) {
+      if(EventNumber%wavesPrintRate==0 && (PE_WOM2)<10) {
         if(wavePrintStatus<0){
           cWaves.Print((TString)(plotSaveFolder+"/waves.pdf("),"pdf");
           wavePrintStatus=0;
@@ -726,7 +735,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         }
         else csumWOMA.Print((TString)(plotSaveFolder+"/sumWOMA.pdf"),"pdf");
       }
-      if(EventNumber%sumWOMBPrintRate==0){
+      if(EventNumber%sumWOMBPrintRate==0 && (PE_WOM2)<10){
         if(sumWOMBPrintStatus<0){
            csumWOMB.Print((TString)(plotSaveFolder+"/sumWOMB.pdf("),"pdf");
            sumWOMBPrintStatus=0;
