@@ -40,16 +40,14 @@
 
 float SP = 0.3125;
 float pe = 47.46;//mV*ns
-//vector<float> pe_SiPM = {32.14, 39.33, 34.20, 30.79, 34.09, 29.99, 30.69, 29.95}; //a,b,c,d,e,f,g,h  -  Gain-Baseline from fit
-vector<float> pe_SiPM = {42.01, 34.67, 34.28, 33.84, 37.55, 34.68, 33.81, 38.84}; //sorted by Wavecatcher-Channel
 vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.754};
-// vector<float> calib_amp_AB = {10.0024,9.24254,9.08902,10.0149,9.95047,9.55901,10.1483,10.4179,10.0141,9.92513,10.4975,10.422,10.1208,10.1884,10.1682,1};
+vector<float> calib_amp = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 vector<float> calib_amp_AB = {6.748,6.16313,6.07082,6.68036,6.65783,6.37541,6.7711,6.85418,6.68469,6.58283,6.98329,6.97906,6.76493,6.75924,6.78279,1};
-vector<float> calib_amp_AB_max = {9.91652,8.86927,8.88147,9.57771,9.58071,9.14965,9.53239,10.1344,9.62728,9.62879,10.0288,10.3354,9.75948,9.53048,9.68774,1};
+vector<float> calib_amp_CD = {4.738141,4.689474,4.553902,4.554155,4.545284,4.577300,4.746832,4.396243,4.217127, 4.344094,4.416440,4.678121,4.678319,4.633572,4.705655,1};
 
-int wavesPrintRate = 1;
+int wavesPrintRate = 10;
 int sumWOMAPrintRate = 1000000;
-int sumWOMBPrintRate = 1;
+int sumWOMBPrintRate = 10;
 int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
 int signalPrintRate = 100000;//100
@@ -135,9 +133,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Int_t WOMID[16];  //1=A, 2=B, 3=C, 4=D
   float PE_WOM1, PE_WOM2;
   std::vector<float> amp(16,-999);
-  std::vector<float> amp_max(16,-999);
   std::vector<float> amp_inRange(16,-999);
-  std::vector<float> amp_BL(16,-999);
   std::vector<float> max(16,-999);
   std::vector<float> min(16,-999);
   Float_t t[16];
@@ -263,9 +259,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("WOMID",WOMID,"WOMID[nCh]/I");
   tree->Branch("ch",ChannelNr, "ch[nCh]/I");
   tree->Branch("amp",amp.data(), "amp[nCh]/F");
-  tree->Branch("amp_max",amp_max.data(), "amp_max[nCh]/F");
   tree->Branch("amp_inRange",amp_inRange.data(), "amp_inRange[nCh]/F");
-  tree->Branch("amp_BL",amp_BL.data(), "amp_BL[nCh]/F");
   tree->Branch("max",max.data(), "max[nCh]/F");
   tree->Branch("min",min.data(), "min[nCh]/F");
   tree->Branch("t",t, "t[nCh]/F");
@@ -323,9 +317,11 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
     there are two types of raw data files that have different header lengths.*/
     if (WCVersion == WCHU){
       size_of_header = 328;
+      calib_amp = calib_amp_AB;
     }
     else if (WCVersion == WCAlexander){
       size_of_header = 327;
+      calib_amp = calib_amp_CD;
     }
     char header[size_of_header];
     nitem=fread(header,1,size_of_header,pFILE);
@@ -435,7 +431,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
 
         /*The error of each value in each bin is set to 0.5 mV.*/
         for(int j=1;j<=hCh.GetXaxis()->GetNbins();j++){
-          hCh.SetBinError(j,0.5);
+          hCh.SetBinError(j,3);
         }
 
         /*Analysis if the event/signal starts.*/
@@ -486,7 +482,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         {
           for (int j = 0; j < nPeaks; ++j)
           {
-            peakY[i][j] = amp2pe(peakY[i][j], calib_amp_AB[i],BL_upper[i], BL_lower[i], BL_Chi2_upper[i], BL_Chi2_lower[i]);
+            peakY[i][j] = amp2pe(peakY[i][j], calib_amp[i],BL_upper[i], BL_lower[i], BL_Chi2_upper[i], BL_Chi2_lower[i]);
           }
         }
 
@@ -499,7 +495,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         */
         amp_inRange[i] = max_inRange(&hCh,0,95);
         // convert p.e. and BL-correct
-        amp_inRange[i] = amp2pe(amp_inRange[i], calib_amp_AB[i],BL_upper[i], BL_lower[i], BL_Chi2_upper[i], BL_Chi2_lower[i]);
+        amp_inRange[i] = amp2pe(amp_inRange[i], calib_amp[i],BL_upper[i], BL_lower[i], BL_Chi2_upper[i], BL_Chi2_lower[i]);
         
         /*
         __ CFD _____________________________________________________________
@@ -559,37 +555,18 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         Additionally the number of p.e. is now calculated using the amplitude
         and the calibration factors in the calib_amp-vactor. The function 'PE' calculates the amplitude of the signal, subtracts the better BL value and divides by the calibration factor.
         */
-        Integral_0_300[i] = (hCh.Integral(1, 1024, "width")-0.0*1024*SP);
         if (BL_Chi2_upper[i] <= BL_Chi2_lower[i]){
-        	Integral[i] = Integrate_50ns(&hCh, BL_upper[i]);
-        	amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_upper[i], 100.0, 150.0);
-          // amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_upper[i], t[i]-20, t[i]+30);
+        	amp[i] = PE(&hCh,calib_amp.at(i),BL_upper[i], 100.0, 150.0);
           BL_used[i] = BL_upper[i];
           BL_Chi2_used[i] = BL_Chi2_upper[i];
           BL_pValue_used[i] = BL_pValue_upper[i];
-          hCh.GetXaxis()->SetRange((t[i]-20)/SP,(t[i]+30)/SP);
-          int max_bin = hCh.GetMaximumBin();
-          amp_max[i] = (hCh.GetBinContent(max_bin)-BL_upper[i])/calib_amp_AB_max.at(i);
-          hCh.GetXaxis()->SetRange(0,1024);
         }
         else{
-        	Integral[i] = Integrate_50ns(&hCh, BL_lower[i]);
-         	amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_lower[i], 100.0, 150.0);
-          // amp[i] = PE(&hCh,calib_amp_AB.at(i),BL_lower[i], t[i]-20, t[i]+30);
+         	amp[i] = PE(&hCh,calib_amp.at(i),BL_lower[i], 100.0, 150.0);
           BL_used[i] = BL_lower[i];
           BL_Chi2_used[i] = BL_Chi2_lower[i];
           BL_pValue_used[i] = BL_pValue_lower[i];
-          hCh.GetXaxis()->SetRange((t[i]-20)/SP,(t[i]+30)/SP);
-          int max_bin = hCh.GetMaximumBin();
-          amp_max[i] = (hCh.GetBinContent(max_bin)-BL_lower[i])/calib_amp_AB_max.at(i);
-          hCh.GetXaxis()->SetRange(0,1024);
         }
-
-        hCh.GetXaxis()->SetRange(0./SP,75./SP);
-        int max_bin = hCh.GetMaximumBin();
-        amp_BL[i] = hCh.GetBinContent(max_bin);
-        hCh.GetXaxis()->SetRange(0,1024);
-      // End of loop over inividual channels
 
         /*
         __ Printing Wafevorms ____________________________________________
@@ -608,27 +585,17 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
           float lower_time = hCh.GetXaxis()->GetBinCenter(lower_bin);
           float upper_time = hCh.GetXaxis()->GetBinCenter(upper_bin);
           hCh.GetXaxis()->SetRange(0,1024);
-          TLine* ln = new TLine(max_time,-2000,max_time,2000);
-          TLine* ln2 = new TLine(lower_time,-2000,lower_time,2000);
-          TLine* ln3 = new TLine(upper_time,-2000,upper_time,2000);
           TLine* ln4 = new TLine(0,BL_lower[i],75,BL_lower[i]);
           TLine* ln5 = new TLine(220,BL_upper[i],320,BL_upper[i]);
           TText *text = new TText(.5,.5,Form("%f %f",BL_lower[i],BL_upper[i]));
-          TText *text2 = new TText(max_time+3,amp[i]+1,Form("%f %f %f",amp[i], amp_max[i], BL_used[i]));
-          ln->SetLineColor(2);
-          ln2->SetLineColor(3);
-          ln3->SetLineColor(3);
           ln4->SetLineColor(2);
           ln5->SetLineColor(2);
-          ln->Draw("same");
-          ln2->Draw("same");
-          ln3->Draw("same");
           ln4->Draw("same");
           ln5->Draw("same");
           text->Draw("same");
-          text2->Draw("same");
           if (pfON){pm.Draw();} // print peakfinders polymarker
         }
+      // End of loop over inividual channels
       }
 
       /*
@@ -649,24 +616,33 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       }
 
       /* Filling Sum Histograms for WOM A and B and determine time Resolution */
-      /*
+
       TH1F hSumA("hSumA","Sum A;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
       for(int hSumIndexA=0;hSumIndexA<7;hSumIndexA++){
+        TF1* f_const = new TF1("f_const","pol0",0,320);
+        f_const->SetParameter(0,BL_used[hSumIndexA]);
+
+        hChtemp.at(hSumIndexA).Add(f_const, -1);
+        hChtemp.at(hSumIndexA).Scale(1.0/calib_amp.at(hSumIndexA));
+
         hSumA.Add(&hChtemp.at(hSumIndexA),1);
       }
+
+      PE_WOM1 = PE(&hSumA,1,0, 100.0, 150.0);
       csumWOMA.cd(8);
       hSumA.DrawCopy();
 
       tsumWOMA_invCFD = CFDinvert2(&hSumA,0.4);
       tsumWOMA_invCFD_wrtTrig = trigT-tsumWOMA_invCFD;
-*/
+
+
       TH1F hSumB("hSumB","Sum B;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
       for(int hSumIndexB=7;hSumIndexB<15;hSumIndexB++){
         TF1* f_const = new TF1("f_const","pol0",0,320);
         f_const->SetParameter(0,BL_used[hSumIndexB]);
 
         hChtemp.at(hSumIndexB).Add(f_const, -1);
-        hChtemp.at(hSumIndexB).Scale(1.0/calib_amp_AB.at(hSumIndexB));
+        hChtemp.at(hSumIndexB).Scale(1.0/calib_amp.at(hSumIndexB));
 
         hSumB.Add(&hChtemp.at(hSumIndexB),1);
       }
@@ -721,7 +697,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       */
 
       /*Saving the plotted signals/events to a new page in the .pdf file.*/
-      if(EventNumber%wavesPrintRate==0 && (PE_WOM2)<10) {
+      if(EventNumber%wavesPrintRate==0&&BL_Chi2_used[7]<1.4) {
         if(wavePrintStatus<0){
           cWaves.Print((TString)(plotSaveFolder+"/waves.pdf("),"pdf");
           wavePrintStatus=0;
@@ -735,7 +711,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         }
         else csumWOMA.Print((TString)(plotSaveFolder+"/sumWOMA.pdf"),"pdf");
       }
-      if(EventNumber%sumWOMBPrintRate==0 && (PE_WOM2)<10){
+      if(EventNumber%sumWOMBPrintRate==0&&BL_Chi2_used[7]<1.4){
         if(sumWOMBPrintStatus<0){
            csumWOMB.Print((TString)(plotSaveFolder+"/sumWOMB.pdf("),"pdf");
            sumWOMBPrintStatus=0;
