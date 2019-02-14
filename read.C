@@ -42,12 +42,15 @@ float SP = 0.3125;
 float pe = 47.46;//mV*ns
 vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.754};
 vector<float> calib_amp = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+vector<float> const_BL = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+vector<float> const_BL_AB = {-2.19,-1.47,-1.44,-1.21,-2.14,-1.83,-1.49,-0.99,-3.22,-2.24,-1.82,-3.09,-0.72,-0.64,-0.93};
+vector<float> const_BL_CD = {-0.08,-0.39,-1.51,-0.56,-0.61,-0.94,-1.99,-1.06,-2.94,-2.80,-1.09,-0.70,-0.40,-0.39,-0.58};
 vector<float> calib_amp_AB = {6.748,6.16313,6.07082,6.68036,6.65783,6.37541,6.7711,6.85418,6.68469,6.58283,6.98329,6.97906,6.76493,6.75924,6.78279,1};
 vector<float> calib_amp_CD = {4.738141,4.689474,4.553902,4.554155,4.545284,4.577300,4.746832,4.396243,4.217127, 4.344094,4.416440,4.678121,4.678319,4.633572,4.705655,1};
 
-int wavesPrintRate = 10;
-int sumWOMAPrintRate = 1000000;
-int sumWOMBPrintRate = 10;
+int wavesPrintRate = 50000;
+int sumWOMAPrintRate = 50000;
+int sumWOMBPrintRate = 50000;
 int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
 int signalPrintRate = 100000;//100
@@ -318,10 +321,12 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
     if (WCVersion == WCHU){
       size_of_header = 328;
       calib_amp = calib_amp_AB;
+      const_BL = const_BL_AB;
     }
     else if (WCVersion == WCAlexander){
       size_of_header = 327;
       calib_amp = calib_amp_CD;
+      const_BL = const_BL_CD;
     }
     char header[size_of_header];
     nitem=fread(header,1,size_of_header,pFILE);
@@ -447,12 +452,14 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         Calculate baseline values infront and after the triggered signal
         Triggered signal is expected in the range fromm 100 to 150 ns
         */
-        BL_fit(&hChtemp.at(i), BL_output, 0.0, 75.0);
+        // BL_fit(&hChtemp.at(i), BL_output, 0.0, 75.0);
+        BL_fit(&hChtemp.at(i), BL_output, 0.0, 30.0);
         BL_lower[i] = BL_output[0];
         BL_RMS_lower[i] = BL_output[1];
         BL_Chi2_lower[i] = BL_output[2];
         BL_pValue_lower[i] = BL_output[3];
-        BL_fit(&hChtemp.at(i), BL_output, 220.0, 320.0);
+        // BL_fit(&hChtemp.at(i), BL_output, 220.0, 320.0);
+        BL_fit(&hChtemp.at(i), BL_output, 290.0, 320.0);
         BL_upper[i] = BL_output[0];
         BL_RMS_upper[i] = BL_output[1];
         BL_Chi2_upper[i] = BL_output[2];
@@ -620,7 +627,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       TH1F hSumA("hSumA","Sum A;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
       for(int hSumIndexA=0;hSumIndexA<7;hSumIndexA++){
         TF1* f_const = new TF1("f_const","pol0",0,320);
-        f_const->SetParameter(0,BL_used[hSumIndexA]);
+        f_const->SetParameter(0,const_BL[hSumIndexA]);
 
         hChtemp.at(hSumIndexA).Add(f_const, -1);
         hChtemp.at(hSumIndexA).Scale(1.0/calib_amp.at(hSumIndexA));
@@ -628,7 +635,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         hSumA.Add(&hChtemp.at(hSumIndexA),1);
       }
 
-      PE_WOM1 = PE(&hSumA,1,0, 100.0, 150.0);
+      PE_WOM1 = PE(&hSumA,1,0, 100.0, 150.0)*8/7;
       csumWOMA.cd(8);
       hSumA.DrawCopy();
 
@@ -639,7 +646,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       TH1F hSumB("hSumB","Sum B;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
       for(int hSumIndexB=7;hSumIndexB<15;hSumIndexB++){
         TF1* f_const = new TF1("f_const","pol0",0,320);
-        f_const->SetParameter(0,BL_used[hSumIndexB]);
+        f_const->SetParameter(0,const_BL[hSumIndexB]);
 
         hChtemp.at(hSumIndexB).Add(f_const, -1);
         hChtemp.at(hSumIndexB).Scale(1.0/calib_amp.at(hSumIndexB));
@@ -697,7 +704,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       */
 
       /*Saving the plotted signals/events to a new page in the .pdf file.*/
-      if(EventNumber%wavesPrintRate==0&&BL_Chi2_used[7]<1.4) {
+      if(EventNumber%wavesPrintRate==0) {
         if(wavePrintStatus<0){
           cWaves.Print((TString)(plotSaveFolder+"/waves.pdf("),"pdf");
           wavePrintStatus=0;
@@ -711,7 +718,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         }
         else csumWOMA.Print((TString)(plotSaveFolder+"/sumWOMA.pdf"),"pdf");
       }
-      if(EventNumber%sumWOMBPrintRate==0&&BL_Chi2_used[7]<1.4){
+      if(EventNumber%sumWOMBPrintRate==0){
         if(sumWOMBPrintStatus<0){
            csumWOMB.Print((TString)(plotSaveFolder+"/sumWOMB.pdf("),"pdf");
            sumWOMBPrintStatus=0;
