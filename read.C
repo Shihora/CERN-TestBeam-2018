@@ -38,7 +38,7 @@
 #include "analysis.h"
 #include "read.h"
 
-float SP = 0.3125;
+float SP = 0.3125; // ns per bin
 float pe = 47.46;//mV*ns
 vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.754};
 vector<float> calib_amp = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
@@ -48,9 +48,9 @@ vector<float> const_BL_CD = {-0.08,-0.39,-1.47,-0.56,-0.59,-0.85,-1.44,-1.00,-3.
 vector<float> calib_amp_AB = {6.748,6.16313,6.07082,6.68036,6.65783,6.37541,6.7711,6.85418,6.68469,6.58283,6.98329,6.97906,6.76493,6.75924,6.78279,1};
 vector<float> calib_amp_CD = {4.738141,4.689474,4.553902,4.554155,4.545284,4.577300,4.746832,4.396243,4.217127, 4.344094,4.416440,4.678121,4.678319,4.633572,4.705655,1};
 
-int wavesPrintRate = 50000;
-int sumWOMAPrintRate = 50000;
-int sumWOMBPrintRate = 50000;
+int wavesPrintRate = 3000;
+int sumWOMAPrintRate = 1000;
+int sumWOMBPrintRate = 1000;
 int ch0PrintRate = 1000000;
 int trigPrintRate = 1000000;//100
 int signalPrintRate = 100000;//100
@@ -80,14 +80,6 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   The read() function the saves all the events (event by event) of that particular run to a root tree
   which is the saved in /runs/runName/out.root.
   */
-
-  /*Formerly used in TB17 analysis when calculation CFD. Not used in TB18 */
-  TF1* fTrigFit = new TF1("fTrigFit","gaus");
-  fTrigFit->SetParameter(0,800);
-  fTrigFit->SetParameter(2,1);
-  fTrigFit->SetLineWidth(1);
-  
-  
   
   /*Create root-file and root-tree for data*/
   TFile *rootFile = new TFile( _outFile, "RECREATE");
@@ -134,7 +126,11 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   int nActiveCh = -1;
   Int_t ChannelNr[16];
   Int_t WOMID[16];  //1=A, 2=B, 3=C, 4=D
-  float PE_WOM1, PE_WOM2;
+
+  float PE_WOM1, PE_WOM2; // calibrated, baseline-shifted sum signal
+  float t_PE_WOM1, t_PE_WOM2; // point in time of sum signal
+  float chPE[16]; // single channel amplitude at sum signal
+
   std::vector<float> amp(16,-999);
   std::vector<float> amp_inRange(16,-999);
   std::vector<float> max(16,-999);
@@ -238,7 +234,6 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("vert",&vertical,"vert/F");//vertical position of the box, units: [cm]
   tree->Branch("angle",&angle,"angle/F");
   tree->Branch("pdgID",&pdgID,"pdgID/I");
-  // tree->Branch("WOMID",WOMID,"WOMID[nCh]/I");
   tree->Branch("energy",&energy,"energy/F");
   tree->Branch("isSP",&isSP,"isSP/I");
   tree->Branch("mp",&mp,"mp/I");
@@ -269,6 +264,9 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("tSiPM", tSiPM, "tSiPM[nCh]/F");
   tree->Branch("PE_WOM1",&PE_WOM1, "PE_WOM1/F");
   tree->Branch("PE_WOM2",&PE_WOM2, "PE_WOM2/F");
+  tree->Branch("t_PE_WOM1",&t_PE_WOM1, "t_PE_WOM1/F");
+  tree->Branch("t_PE_WOM2",&t_PE_WOM2, "t_PE_WOM2/F");
+  tree->Branch("chPE",chPE, "chPE[nCh]/F");
   tree->Branch("BL_lower", BL_lower, "BL_lower[nCh]/F");
   tree->Branch("BL_RMS_lower", BL_RMS_lower, "BL_RMS_lower[nCh]/F");
   tree->Branch("BL_Chi2_lower", BL_Chi2_lower, "BL_Chi2_lower[nCh]/F");
@@ -465,6 +463,18 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         BL_Chi2_upper[i] = BL_output[2];
         BL_pValue_upper[i] = BL_output[3];
 
+        // determine "best" baseline
+         if (BL_Chi2_upper[i] <= BL_Chi2_lower[i]){
+          BL_used[i] = BL_upper[i];
+          BL_Chi2_used[i] = BL_Chi2_upper[i];
+          BL_pValue_used[i] = BL_pValue_upper[i];
+        }
+        else{
+          BL_used[i] = BL_lower[i];
+          BL_Chi2_used[i] = BL_Chi2_lower[i];
+          BL_pValue_used[i] = BL_pValue_lower[i];
+        }
+
         /*
         __ Peakfinder _________________________________________________________
         Implemented to search double-muon-event candiates
@@ -495,14 +505,6 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
 
         // printf("X: %d %f %f %f %f \n",i,peakX[i][0],peakX[i][1],peakX[i][2],peakX[i][3]);
         // printf("Y: %d %f %f %f %f \n",i,peakY[i][0],peakY[i][1],peakY[i][2],peakY[i][3]);
-
-        /*
-        __ Max. Amplitude in Range __________________________________________
-        Record maximum amplitude in range before expected signal (100-130 ns)
-        */
-        amp_inRange[i] = max_inRange(&hCh,0,95);
-        // convert p.e. and BL-correct
-        amp_inRange[i] = amp2pe(amp_inRange[i], calib_amp[i],BL_upper[i], BL_lower[i], BL_Chi2_upper[i], BL_Chi2_lower[i]);
         
         /*
         __ CFD _____________________________________________________________
@@ -518,8 +520,6 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
             t[i] = CFDinvert2(&hCh,0.35);
           }
         }
-
-
 
         /*
         __Print Raw Data to .txt ______________________________________________
@@ -545,14 +545,14 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         //   }
         //   fclose(histOut);
         // }
-      if(EventNumber%sumWOMAPrintRate==0&&i<7){
-          csumWOMA.cd(i+1);
-          hCh.DrawCopy();
-      }
-      if(EventNumber%sumWOMBPrintRate==0&&i>6){
-         csumWOMB.cd(i-6);
-         hCh.DrawCopy();
-      }
+        if(EventNumber%sumWOMAPrintRate==0&&i<7){
+            csumWOMA.cd(i+1);
+            hCh.DrawCopy();
+        }
+        if(EventNumber%sumWOMBPrintRate==0&&i>6){
+           csumWOMB.cd(i-6);
+           hCh.DrawCopy();
+        }
 
         /*
         __ Integral & Amplitude ________________________________________
@@ -562,18 +562,14 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         Additionally the number of p.e. is now calculated using the amplitude
         and the calibration factors in the calib_amp-vactor. The function 'PE' calculates the amplitude of the signal, subtracts the better BL value and divides by the calibration factor.
         */
-        if (BL_Chi2_upper[i] <= BL_Chi2_lower[i]){
-        	amp[i] = PE(&hCh,calib_amp.at(i),BL_upper[i], 100.0, 150.0);
-          BL_used[i] = BL_upper[i];
-          BL_Chi2_used[i] = BL_Chi2_upper[i];
-          BL_pValue_used[i] = BL_pValue_upper[i];
-        }
-        else{
-         	amp[i] = PE(&hCh,calib_amp.at(i),BL_lower[i], 100.0, 150.0);
-          BL_used[i] = BL_lower[i];
-          BL_Chi2_used[i] = BL_Chi2_lower[i];
-          BL_pValue_used[i] = BL_pValue_lower[i];
-        }
+        amp[i] = PE(&hCh,calib_amp.at(i),BL_used[i], 100.0, 150.0);
+
+        /*
+        __ Max. Amplitude in Range __________________________________________
+        Record maximum amplitude in range before expected signal (100-130 ns)
+        */
+        // convert p.e. and BL-correct
+        amp_inRange[i] = PE(&hCh,calib_amp.at(i),BL_used[i], 0.0, 50.0);
 
         /*
         __ Printing Wafevorms ____________________________________________
@@ -607,7 +603,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
 
       /*
       __ Number of P.E. _____________________________________________________
-      Calculate & save the number of p.e. for an entire WOM. Note: for the 1st WOM of each WC one channel was not recorded. Thus, there are only 7 values from 8. The result for the WOM is therefore scaled up by 8/7 to make the numbers comparable.
+      Calculate & save the number of p.e. for an entire WOM.
+      Note: for the 1st WOM of each WC one channel was not recorded.
+      Thus, there are only 7 values from 8. The result for the WOM is therefore
+      scaled up by 8/7 to make the numbers comparable.
       */
       PE_WOM1 = 8/7*(amp[0]+amp[1]+amp[2]+amp[3]+amp[4]+amp[5]+amp[6]);
       PE_WOM2 = (amp[7]+amp[8]+amp[9]+amp[10]+amp[11]+amp[12]+amp[13]+amp[14]);
@@ -622,10 +621,15 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         */
       }
 
-      /* Filling Sum Histograms for WOM A and B and determine time Resolution */
+      /*
+      __ FILLING SUM HISTOGRAMS ________________________
+      For WOM 1 and 2 and determine time Resolution
+      */
 
-      TH1F hSumA("hSumA","Sum A;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
-      for(int hSumIndexA=0;hSumIndexA<7;hSumIndexA++){
+      // SUM WOM 1
+      TH1F hSumA("hSumA","Sum A;ns;Amplitude, N_pe",1024,-0.5*SP,1023.5*SP);
+      for(int hSumIndexA=0;hSumIndexA<7;hSumIndexA++)
+      {
         TF1* f_const = new TF1("f_const","pol0",0,320);
         f_const->SetParameter(0,const_BL[hSumIndexA]);
 
@@ -635,16 +639,27 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         hSumA.Add(&hChtemp.at(hSumIndexA),1);
       }
 
-      PE_WOM1 = PE(&hSumA,1,0, 100.0, 150.0)*8/7;
+      // get point of amplitude maximum
+      PE_WOM1 = max_inRange(&hSumA, 100.0, 150.0)*8/7;
+      t_PE_WOM1 = t_max_inRange(&hSumA, 100.0, 150.0);
+
       csumWOMA.cd(8);
       hSumA.DrawCopy();
 
+      // get single channel amplitude at time of sum maximum
+      for (int i=0;i<7;i++)
+      {
+        chPE[i] = amp_atTime(&hChtemp.at(i), t_PE_WOM1);
+      }
+
+      // timing WOM 1
       tsumWOMA_invCFD = CFDinvert2(&hSumA,0.4);
       tsumWOMA_invCFD_wrtTrig = trigT-tsumWOMA_invCFD;
 
-
-      TH1F hSumB("hSumB","Sum B;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
-      for(int hSumIndexB=7;hSumIndexB<15;hSumIndexB++){
+      // SUM WOM 2
+      TH1F hSumB("hSumB","Sum B;ns;Amplitude, N_pe",1024,-0.5*SP,1023.5*SP);
+      for(int hSumIndexB=7;hSumIndexB<15;hSumIndexB++)
+      {
         TF1* f_const = new TF1("f_const","pol0",0,320);
         f_const->SetParameter(0,const_BL[hSumIndexB]);
 
@@ -654,13 +669,24 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         hSumB.Add(&hChtemp.at(hSumIndexB),1);
       }
 
-      PE_WOM2 = PE(&hSumB,1,0, 100.0, 150.0);
+      // get point of amplitude maximum
+      PE_WOM2 = max_inRange(&hSumB, 100.0, 150.0);
+      t_PE_WOM2 = t_max_inRange(&hSumB, 100.0, 150.0);
+
       csumWOMB.cd(9);
       hSumB.DrawCopy();
 
+      // get single channel amplitude at time of sum maximum
+      for (int i=7;i<15;i++)
+      {
+        chPE[i] = amp_atTime(&hChtemp.at(i), t_PE_WOM2);
+      }
+
+      // timing WOM 2
       tsumWOMB_invCFD = CFDinvert2(&hSumB,0.4);
       tsumWOMB_invCFD_wrtTrig = trigT-tsumWOMB_invCFD;
-/*
+      
+      /*
       */
       /* end */
 
