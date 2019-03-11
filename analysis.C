@@ -237,6 +237,32 @@ float max_inRange(TH1F* hWave,float t1, float t2){
 }
 
 /*
+__ Get Time at Maximum in Range _________________________________
+Returns time value of maximum amplitude in given range t1-t2
+*/
+float t_max_inRange(TH1F* hWave,float t1, float t2){
+
+  hWave->GetXaxis()->SetRange(t1/SP,t2/SP);
+  float t_max = hWave->GetXaxis()->GetBinCenter( hWave->GetMaximumBin() );
+  hWave->GetXaxis()->SetRange(1,1024);
+  return t_max;
+}
+
+/*
+__ Get Maximum at Point in Time _________________________________
+Returns amplitude value of given point in time
+using a constant fit over a 0.5 ns range around that time.
+*/
+float amp_atTime(TH1F* hWave,float t_max){
+  
+  TF1* f1 = new TF1("f1","pol0",100,300);
+  hWave->Fit("f1","QN","",t_max-0.5,t_max+0.5);
+  float max = f1->GetParameter(0);
+
+  return max;
+}
+
+/*
 __ Convert mV to npe _______________________________________________
 Value is basline-corrected and converted to units of p.e. 
 */
