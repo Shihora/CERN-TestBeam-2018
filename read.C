@@ -41,8 +41,8 @@
 float SP = 0.3125; // ns per bin
 float pe = 47.46;//mV*ns
 vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.754};
-vector<float> calib_amp = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-vector<float> const_BL = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+vector<float> calib_amp = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}; // dummy
+vector<float> const_BL = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; // dummy
 vector<float> const_BL_AB = {-2.05,-1.43,-1.39,-2.63,-2.42,-2.34,-1.36,-1.00,-3.10,-2.14,-1.76,-2.95,-0.73,-0.69,-0.99};
 vector<float> const_BL_CD = {-0.08,-0.39,-1.47,-0.56,-0.59,-0.85,-1.44,-1.00,-3.45,-3.47,-0.99,-0.68,-0.35,-0.40,-0.55};
 vector<float> calib_amp_AB = {6.748,6.16313,6.07082,6.68036,6.65783,6.37541,6.7711,6.85418,6.68469,6.58283,6.98329,6.97906,6.76493,6.75924,6.78279,1};
@@ -52,8 +52,8 @@ int wavesPrintRate = 3000;
 int sumWOMAPrintRate = 1000;
 int sumWOMBPrintRate = 1000;
 int ch0PrintRate = 1000000;
-int trigPrintRate = 1000000;//100
-int signalPrintRate = 100000;//100
+int trigPrintRate = 1000000;
+int signalPrintRate = 100000;
 double coef = 2.5 / (4096 * 10);
 string WCHU ("AB"), WCAlexander ("CD");
 
@@ -138,6 +138,12 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Float_t t[16];
   Float_t tSiPM[16];
 
+  float Integral_0_300[16];//array used to store Integral of signal from 0 to 300ns
+  float Integral_inRange[16]; // calculate integral in given range
+  float Integral[16];
+  float Integral_mVns[16];
+
+  float BL_output[4];//array used for output getBL-function
   Float_t BL_lower[16];//store baseline for 16 channels for 0-75ns range
   Float_t BL_RMS_lower[16];//store rms of baseline for 16 channels for 0-75ns range
   Float_t BL_Chi2_lower[16];//store chi2/dof of baseline-fit for 16 channels for 0-75ns range
@@ -151,15 +157,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Float_t BL_Chi2_used[16];
   Float_t BL_pValue_used[16];
 
-  float BL_output[4];//array used for output getBL-function
-  float Integral_0_300[16];//array used to store Integral of signal from 0 to 300ns
-
   int nPeaks = 4; // maximum number of peaks to be stored by peakfinder; has to be set also when creating branch
   Double_t peakX[16][nPeaks];
   Double_t peakY[16][nPeaks];
 
-  float Integral[16];
-  float Integral_mVns[16];
   int NumberOfBins;
   Int_t EventIDsamIndex[16];
   Int_t FirstCellToPlotsamIndex[16];
@@ -197,6 +198,9 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   }
   Short_t amplValues[16][1024];
   TH1F hCh("hCh","dummy;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
+  // uncommtent, if .root file name should equal raw data file
+  // TString plotSaveFolder  = _inDataFolder;
+  // plotSaveFolder.ReplaceAll("data","runs");
   TString plotSaveFolder  = _outFile;
   plotSaveFolder.ReplaceAll("out.root","");
   TCanvas cWaves("cWaves","cWaves",1000,700);
@@ -248,25 +252,26 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("t2t3",&t2t3, "t2t3/F");
   tree->Branch("isVeto",&isVeto,"isVeto/I");
   tree->Branch("isTrig",&isTrig,"isTrig/I");
-  tree->Branch("tsumWOMA_invCFD",&tsumWOMA_invCFD,"tsumWOMA_invCFD/F");
-  tree->Branch("tsumWOMB_invCFD",&tsumWOMB_invCFD,"tsumWOMB_invCFD/F");
-  tree->Branch("tsumWOMA_invCFD_wrtTrig",&tsumWOMA_invCFD_wrtTrig,"tsumWOMA_invCFD_wrtTrig/F");
-  tree->Branch("tsumWOMB_invCFD_wrtTrig",&tsumWOMB_invCFD_wrtTrig,"tsumWOMB_invCFD_wrtTrig/F");  
   tree->Branch("isGoodSignal_5",&isGoodSignal_5,"isGoodSignal_5/I");
+ 
+  // CHANNEL INFO (but everything that is nCH-dependend below)
   tree->Branch("nCh",&nCh, "nCh/I");
   tree->Branch("WOMID",WOMID,"WOMID[nCh]/I");
   tree->Branch("ch",ChannelNr, "ch[nCh]/I");
+  // AMPLITUDE
   tree->Branch("amp",amp.data(), "amp[nCh]/F");
   tree->Branch("amp_inRange",amp_inRange.data(), "amp_inRange[nCh]/F");
   tree->Branch("max",max.data(), "max[nCh]/F");
   tree->Branch("min",min.data(), "min[nCh]/F");
+  // INTEGRAL
+  tree->Branch("Integral_0_300", Integral_0_300, "Integral_0_300[nCh]/F");
+  tree->Branch("Integral_inRange", Integral_inRange, "Integral_inRange[nCh]/F");
+  tree->Branch("Integral", Integral, "Integral[nCh]/F");
+  tree->Branch("Integral_mVns", Integral_mVns, "Integral_mVns[nCh]/F");
+  // TIMING
   tree->Branch("t",t, "t[nCh]/F");
   tree->Branch("tSiPM", tSiPM, "tSiPM[nCh]/F");
-  tree->Branch("PE_WOM1",&PE_WOM1, "PE_WOM1/F");
-  tree->Branch("PE_WOM2",&PE_WOM2, "PE_WOM2/F");
-  tree->Branch("t_PE_WOM1",&t_PE_WOM1, "t_PE_WOM1/F");
-  tree->Branch("t_PE_WOM2",&t_PE_WOM2, "t_PE_WOM2/F");
-  tree->Branch("chPE",chPE, "chPE[nCh]/F");
+  // BASELINE
   tree->Branch("BL_lower", BL_lower, "BL_lower[nCh]/F");
   tree->Branch("BL_RMS_lower", BL_RMS_lower, "BL_RMS_lower[nCh]/F");
   tree->Branch("BL_Chi2_lower", BL_Chi2_lower, "BL_Chi2_lower[nCh]/F");
@@ -278,11 +283,20 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("BL_used", BL_used, "BL_used[nCh]/F");
   tree->Branch("BL_Chi2_used", BL_Chi2_used, "BL_Chi2_used[nCh]/F");
   tree->Branch("BL_pValue_used", BL_pValue_used, "BL_pValue_used[nCh]/F");
+  // PEAKFINDER
   tree->Branch("peakX",peakX,"peakX[nCh][4]/D");
   tree->Branch("peakY",peakY,"peakY[nCh][4]/D");
-  tree->Branch("Integral_0_300", Integral_0_300, "Integral_0_300[nCh]/F");
-  tree->Branch("Integral", Integral, "Integral[nCh]/F");
-  tree->Branch("Integral_mVns", Integral_mVns, "Integral_mVns[nCh]/F");
+  // CALIBRATED SUM
+  tree->Branch("PE_WOM1",&PE_WOM1, "PE_WOM1/F");
+  tree->Branch("PE_WOM2",&PE_WOM2, "PE_WOM2/F");
+  tree->Branch("t_PE_WOM1",&t_PE_WOM1, "t_PE_WOM1/F");
+  tree->Branch("t_PE_WOM2",&t_PE_WOM2, "t_PE_WOM2/F");
+  tree->Branch("chPE",chPE, "chPE[nCh]/F");
+  tree->Branch("tsumWOMA_invCFD",&tsumWOMA_invCFD,"tsumWOMA_invCFD/F");
+  tree->Branch("tsumWOMB_invCFD",&tsumWOMB_invCFD,"tsumWOMB_invCFD/F");
+  tree->Branch("tsumWOMA_invCFD_wrtTrig",&tsumWOMA_invCFD_wrtTrig,"tsumWOMA_invCFD_wrtTrig/F");
+  tree->Branch("tsumWOMB_invCFD_wrtTrig",&tsumWOMB_invCFD_wrtTrig,"tsumWOMB_invCFD_wrtTrig/F"); 
+
   tree->Branch("EventIDsamIndex",EventIDsamIndex, "EventIDsamIndex[nCh]/I");
   tree->Branch("FirstCellToPlotsamIndex",FirstCellToPlotsamIndex, "FirstCellToPlotsamIndex[nCh]/I");
 
@@ -499,7 +513,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         {
           for (int j = 0; j < nPeaks; ++j)
           {
-            peakY[i][j] = amp2pe(peakY[i][j], calib_amp[i],BL_upper[i], BL_lower[i], BL_Chi2_upper[i], BL_Chi2_lower[i]);
+            peakY[i][j] = amp2pe(peakY[i][j], calib_amp[i], BL_used[i]);
           }
         }
 
@@ -545,6 +559,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         //   }
         //   fclose(histOut);
         // }
+        // clibrated sum
         if(EventNumber%sumWOMAPrintRate==0&&i<7){
             csumWOMA.cd(i+1);
             hCh.DrawCopy();
@@ -562,13 +577,13 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         Additionally the number of p.e. is now calculated using the amplitude
         and the calibration factors in the calib_amp-vactor. The function 'PE' calculates the amplitude of the signal, subtracts the better BL value and divides by the calibration factor.
         */
-        amp[i] = PE(&hCh,calib_amp.at(i),BL_used[i], 100.0, 150.0);
 
-        /*
-        __ Max. Amplitude in Range __________________________________________
-        Record maximum amplitude in range before expected signal (100-130 ns)
-        */
-        // convert p.e. and BL-correct
+        Integral[i] = Integrate_50ns(&hCh, BL_used[i]); // difined 50 ns window
+        Integral_inRange[i] = integral(&hCh, 110,140, BL_used[i]); // variable window
+
+        // calibrated, BL-shifted amplitude at maximum in window
+        amp[i] = PE(&hCh,calib_amp.at(i),BL_used[i], 100.0, 150.0);
+        //maximum amplitude in range before expected signal (100-130 ns)
         amp_inRange[i] = PE(&hCh,calib_amp.at(i),BL_used[i], 0.0, 50.0);
 
         /*
@@ -610,6 +625,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       */
       PE_WOM1 = 8/7*(amp[0]+amp[1]+amp[2]+amp[3]+amp[4]+amp[5]+amp[6]);
       PE_WOM2 = (amp[7]+amp[8]+amp[9]+amp[10]+amp[11]+amp[12]+amp[13]+amp[14]);
+
+      /*
+      __ TIMING _____
+      */
       trigT = t[15];
       for (int i=0; i<=14; i++){
         tSiPM[i] = t[i] - trigT;

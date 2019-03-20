@@ -139,7 +139,7 @@ case $case_selector in
 
 			inFileList=$here/runs/$runName/$runName.list
 			inDataFolder=$here/data/$runName/
-			outFile=$here/runs/$runName/out.root
+			outFile=$here/runs/$runName/$runName.root
 
 			echo "$runNr $runName $MP $pdgID $energy $angle $WC $side_pos_x $side_pos_y"
 

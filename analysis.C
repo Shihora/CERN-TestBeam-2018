@@ -220,7 +220,7 @@ __ Get Maximum in Range _________________________________
 Returns amplitude value of maximum in given range t1-t2
 using a constant fit over a 0.5 ns range around the maximum.
 */
-float max_inRange(TH1F* hWave,float t1, float t2){
+float max_inRange(TH1F* hWave, float t1, float t2){
   TF1* f1 = new TF1("f1","pol0",100,300);
   double r1=0;
   double r2=0;
@@ -266,12 +266,18 @@ float amp_atTime(TH1F* hWave,float t_max){
 __ Convert mV to npe _______________________________________________
 Value is basline-corrected and converted to units of p.e. 
 */
-double amp2pe(double y, float calib_factor, float BL_upper, float BL_lower, float BL_Chi2_upper, float BL_Chi2_lower)
+double amp2pe_u_l(double y, float calib_factor, float BL_upper, float BL_lower, float BL_Chi2_upper, float BL_Chi2_lower)
 {
   if (BL_Chi2_upper <= BL_Chi2_lower)
       {y = (y-BL_upper) / calib_factor;}
   else{y = (y-BL_lower) / calib_factor;}
 
+  return y;
+}
+
+double amp2pe(double y, float calib_factor, float BL_used)
+{
+  y = (y-BL_used) / calib_factor;
   return y;
 }
 
