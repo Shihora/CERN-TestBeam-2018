@@ -28,5 +28,6 @@ double amp2pe(double y, float calib_factor, float BL_used);
 // OTHER
 double correction_function(double x);
 void peakfinder(TH1F *hWave, float t1, float t2, int nPeaks, int sigma, double thr, double *Xarray, double *Yarray, TPolyMarker *pfMarker, bool pfON);
+float estimateNL(TH1F *hWave, float t);
 
 #endif

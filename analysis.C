@@ -5,6 +5,7 @@
 #include <TString.h>
 #include <TSpectrum.h>
 #include <TPolyMarker.h>
+#include <TGraphErrors.h>
 
 //C, C++
 #include <math.h>
@@ -337,4 +338,13 @@ void peakfinder(TH1F *hWave, float t1, float t2, int nPeaks, int sigma, double t
   else{ for (int k = 0; k < nPeaks; ++k){ Xarray[k]=-999; Yarray[k]=-999; } }
 
   hWave->GetXaxis()->SetRange(1,1024);
+}
+
+float estimateNL(TH1F *hWave, float t){
+  hWave->GetXaxis()->SetRange(1,t/SP);
+  TGraphErrors *g = new TGraphErrors(hWave);
+  float RMS = g->GetRMS(2);
+  delete g;
+  hWave->GetXaxis()->SetRange(1,1024);
+  return RMS;
 }

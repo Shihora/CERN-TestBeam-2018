@@ -48,7 +48,7 @@ vector<float> const_BL_CD = {-0.08,-0.39,-1.47,-0.56,-0.59,-0.85,-1.44,-1.00,-3.
 vector<float> calib_amp_AB = {6.748,6.16313,6.07082,6.68036,6.65783,6.37541,6.7711,6.85418,6.68469,6.58283,6.98329,6.97906,6.76493,6.75924,6.78279,1};
 vector<float> calib_amp_CD = {4.738141,4.689474,4.553902,4.554155,4.545284,4.577300,4.746832,4.396243,4.217127, 4.344094,4.416440,4.678121,4.678319,4.633572,4.705655,1};
 
-int wavesPrintRate = 3000;
+int wavesPrintRate = 1000;
 int sumWOMAPrintRate = 1000;
 int sumWOMBPrintRate = 1000;
 int ch0PrintRate = 1000000;
@@ -156,6 +156,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Float_t BL_used[16];
   Float_t BL_Chi2_used[16];
   Float_t BL_pValue_used[16];
+  float noiseLevel[16];
 
   int nPeaks = 4; // maximum number of peaks to be stored by peakfinder; has to be set also when creating branch
   Double_t peakX[16][nPeaks];
@@ -284,6 +285,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("BL_Chi2_used", BL_Chi2_used, "BL_Chi2_used[nCh]/F");
   tree->Branch("BL_pValue_used", BL_pValue_used, "BL_pValue_used[nCh]/F");
   // PEAKFINDER
+  tree->Branch("noiseLevel", noiseLevel, "noiseLevel[nCh]/F");
   tree->Branch("peakX",peakX,"peakX[nCh][4]/D");
   tree->Branch("peakY",peakY,"peakY[nCh][4]/D");
   // CALIBRATED SUM
@@ -613,6 +615,9 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
           text->Draw("same");
           if (pfON){pm.Draw();} // print peakfinders polymarker
         }
+      hCh.GetXaxis()->SetRange(1,30/SP);
+      noiseLevel[i] = hCh.GetMaximum()-hCh.GetMinimum();
+      hCh.GetXaxis()->SetRange(1,1024);
       // End of loop over inividual channels
       }
 
