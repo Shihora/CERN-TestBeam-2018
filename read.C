@@ -42,6 +42,7 @@ float SP = 0.3125; // ns per bin
 float pe = 47.46;//mV*ns
 vector<float> SiPM_shift = {2.679, 2.532, 3.594, 3.855, 3.354, 3.886, 3.865, 4.754};
 vector<float> calib_amp = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}; // dummy
+vector<float> calib_int = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}; // dummy
 vector<float> const_BL = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; // dummy
 vector<float> const_BL_AB = {-2.05,-1.43,-1.39,-2.63,-2.42,-2.34,-1.36,-1.00,-3.10,-2.14,-1.76,-2.95,-0.73,-0.69,-0.99};
 vector<float> const_BL_CD = {-0.08,-0.39,-1.47,-0.56,-0.59,-0.85,-1.44,-1.00,-3.45,-3.47,-0.99,-0.68,-0.35,-0.40,-0.55};
@@ -128,8 +129,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Int_t WOMID[16];  //1=A, 2=B, 3=C, 4=D
 
   float PE_WOM1, PE_WOM2; // calibrated, baseline-shifted sum signal
+  float PE_WOM1_int, PE_WOM2_int; // calibrated, baseline-shifted sum signal
   float t_PE_WOM1, t_PE_WOM2; // point in time of sum signal
   float chPE[16]; // single channel amplitude at sum signal
+  float chPE_int[16]; // single channel integral
 
   std::vector<float> amp(16,-999);
   std::vector<float> amp_inRange(16,-999);
@@ -290,10 +293,13 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("peakY",peakY,"peakY[nCh][4]/D");
   // CALIBRATED SUM
   tree->Branch("PE_WOM1",&PE_WOM1, "PE_WOM1/F");
+  tree->Branch("PE_WOM1_int",&PE_WOM1_int, "PE_WOM1_int/F");
   tree->Branch("PE_WOM2",&PE_WOM2, "PE_WOM2/F");
+  tree->Branch("PE_WOM2_int",&PE_WOM2_int, "PE_WOM2_int/F");
   tree->Branch("t_PE_WOM1",&t_PE_WOM1, "t_PE_WOM1/F");
   tree->Branch("t_PE_WOM2",&t_PE_WOM2, "t_PE_WOM2/F");
   tree->Branch("chPE",chPE, "chPE[nCh]/F");
+  tree->Branch("chPE_int",chPE_int, "chPE_int[nCh]/F");
   tree->Branch("tsumWOMA_invCFD",&tsumWOMA_invCFD,"tsumWOMA_invCFD/F");
   tree->Branch("tsumWOMB_invCFD",&tsumWOMB_invCFD,"tsumWOMB_invCFD/F");
   tree->Branch("tsumWOMA_invCFD_wrtTrig",&tsumWOMA_invCFD_wrtTrig,"tsumWOMA_invCFD_wrtTrig/F");
@@ -674,7 +680,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       for (int i=0;i<7;i++)
       {
         chPE[i] = amp_atTime(&hChtemp.at(i), t_PE_WOM1);
+        chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM1-10, t_PE_WOM1+10, const_BL[i])/calib_int.at(i);
       }
+
+      PE_WOM1_int = chPE_int[0]+chPE_int[1]+chPE_int[2]+chPE_int[3]+chPE_int[4]+chPE_int[5]+chPE_int[6];
 
       // timing WOM 1
       tsumWOMA_invCFD = CFDinvert2(&hSumA,0.4);
@@ -704,7 +713,9 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       for (int i=7;i<15;i++)
       {
         chPE[i] = amp_atTime(&hChtemp.at(i), t_PE_WOM2);
+        chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM2-10, t_PE_WOM2+10, const_BL[i])/calib_int.at(i);
       }
+      PE_WOM2_int = chPE_int[7]+chPE_int[8]+chPE_int[9]+chPE_int[10]+chPE_int[11]+chPE_int[12]+chPE_int[13]+chPE_int[14];
 
       // timing WOM 2
       tsumWOMB_invCFD = CFDinvert2(&hSumB,0.4);
