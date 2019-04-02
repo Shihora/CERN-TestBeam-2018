@@ -48,6 +48,8 @@ vector<float> const_BL_AB = {-2.05,-1.43,-1.39,-2.63,-2.42,-2.34,-1.36,-1.00,-3.
 vector<float> const_BL_CD = {-0.08,-0.39,-1.47,-0.56,-0.59,-0.85,-1.44,-1.00,-3.45,-3.47,-0.99,-0.68,-0.35,-0.40,-0.55};
 vector<float> calib_amp_AB = {6.748,6.16313,6.07082,6.68036,6.65783,6.37541,6.7711,6.85418,6.68469,6.58283,6.98329,6.97906,6.76493,6.75924,6.78279,1};
 vector<float> calib_amp_CD = {4.738141,4.689474,4.553902,4.554155,4.545284,4.577300,4.746832,4.396243,4.217127, 4.344094,4.416440,4.678121,4.678319,4.633572,4.705655,1};
+vector<float> calib_int_AB = {54.339372, 51.120311, 48.323768, 51.724367, 53.002368, 51.895161, 53.368556, 54.160940, 50.392792, 48.624219, 52.848405, 52.114772, 51.153844, 50.862783, 50.617176,1}
+vector<float> calib_int_CD = {44.267965, 43.887981, 42.386506, 42.066467, 41.266592, 42.462270, 42.703238,37.792835, 36.457600, 37.816670, 37.611428, 39.822824, 39.078728, 39.895177, 39.592268,1};
 
 int wavesPrintRate = 1000;
 int sumWOMAPrintRate = 1000;
@@ -263,15 +265,15 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   tree->Branch("WOMID",WOMID,"WOMID[nCh]/I");
   tree->Branch("ch",ChannelNr, "ch[nCh]/I");
   // AMPLITUDE
-  tree->Branch("amp",amp.data(), "amp[nCh]/F");
-  tree->Branch("amp_inRange",amp_inRange.data(), "amp_inRange[nCh]/F");
+  tree->Branch("amp",amp.data(), "amp[nCh]/F"); // calibrated
+  tree->Branch("amp_inRange",amp_inRange.data(), "amp_inRange[nCh]/F"); // calibrated
   tree->Branch("max",max.data(), "max[nCh]/F");
   tree->Branch("min",min.data(), "min[nCh]/F");
   // INTEGRAL
   tree->Branch("Integral_0_300", Integral_0_300, "Integral_0_300[nCh]/F");
   tree->Branch("Integral_inRange", Integral_inRange, "Integral_inRange[nCh]/F");
-  tree->Branch("Integral", Integral, "Integral[nCh]/F");
-  tree->Branch("Integral_mVns", Integral_mVns, "Integral_mVns[nCh]/F");
+  tree->Branch("Integral", Integral, "Integral[nCh]/F"); // calibrated
+  tree->Branch("Integral_mVns", Integral_mVns, "Integral_mVns[nCh]/F"); // calibrated
   // TIMING
   tree->Branch("t",t, "t[nCh]/F");
   tree->Branch("tSiPM", tSiPM, "tSiPM[nCh]/F");
@@ -341,11 +343,13 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
     if (WCVersion == WCHU){
       size_of_header = 328;
       calib_amp = calib_amp_AB;
+      calib_int = calib_int_AB;
       const_BL = const_BL_AB;
     }
     else if (WCVersion == WCAlexander){
       size_of_header = 327;
       calib_amp = calib_amp_CD;
+      calib_int = calib_int_CD;
       const_BL = const_BL_CD;
     }
     char header[size_of_header];
@@ -586,8 +590,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         and the calibration factors in the calib_amp-vactor. The function 'PE' calculates the amplitude of the signal, subtracts the better BL value and divides by the calibration factor.
         */
 
-        Integral[i] = Integrate_50ns(&hCh, BL_used[i]); // difined 50 ns window
-        Integral_inRange[i] = integral(&hCh, 110,140, BL_used[i]); // variable window
+        Integral[i] = Integrate_50ns(&hCh, BL_used[i]) / calib_int.at(i); // difined 50 ns window
+        Integral_inRange[i] = integral(&hCh, 105,130, BL_used[i]) / calib_int.at(i); // variable window
 
         // calibrated, BL-shifted amplitude at maximum in window
         amp[i] = PE(&hCh,calib_amp.at(i),BL_used[i], 100.0, 150.0);
@@ -676,11 +680,11 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       csumWOMA.cd(8);
       hSumA.DrawCopy();
 
-      // get single channel amplitude at time of sum maximum
+      // get single channel amplitude and integral at time of sum maximum
       for (int i=0;i<7;i++)
       {
         chPE[i] = amp_atTime(&hChtemp.at(i), t_PE_WOM1);
-        chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM1-10, t_PE_WOM1+10, const_BL[i])/calib_int.at(i);
+        chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM1-10, t_PE_WOM1+15, const_BL[i])/calib_int.at(i);
       }
 
       PE_WOM1_int = chPE_int[0]+chPE_int[1]+chPE_int[2]+chPE_int[3]+chPE_int[4]+chPE_int[5]+chPE_int[6];
@@ -709,11 +713,11 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       csumWOMB.cd(9);
       hSumB.DrawCopy();
 
-      // get single channel amplitude at time of sum maximum
+      // get single channel amplitude and integral at time of sum maximum
       for (int i=7;i<15;i++)
       {
         chPE[i] = amp_atTime(&hChtemp.at(i), t_PE_WOM2);
-        chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM2-10, t_PE_WOM2+10, const_BL[i])/calib_int.at(i);
+        chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM2-10, t_PE_WOM2+15, const_BL[i])/calib_int.at(i);
       }
       PE_WOM2_int = chPE_int[7]+chPE_int[8]+chPE_int[9]+chPE_int[10]+chPE_int[11]+chPE_int[12]+chPE_int[13]+chPE_int[14];
 
