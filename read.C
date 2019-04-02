@@ -48,7 +48,7 @@ vector<float> const_BL_AB = {-2.05,-1.43,-1.39,-2.63,-2.42,-2.34,-1.36,-1.00,-3.
 vector<float> const_BL_CD = {-0.08,-0.39,-1.47,-0.56,-0.59,-0.85,-1.44,-1.00,-3.45,-3.47,-0.99,-0.68,-0.35,-0.40,-0.55};
 vector<float> calib_amp_AB = {6.748,6.16313,6.07082,6.68036,6.65783,6.37541,6.7711,6.85418,6.68469,6.58283,6.98329,6.97906,6.76493,6.75924,6.78279,1};
 vector<float> calib_amp_CD = {4.738141,4.689474,4.553902,4.554155,4.545284,4.577300,4.746832,4.396243,4.217127, 4.344094,4.416440,4.678121,4.678319,4.633572,4.705655,1};
-vector<float> calib_int_AB = {54.339372, 51.120311, 48.323768, 51.724367, 53.002368, 51.895161, 53.368556, 54.160940, 50.392792, 48.624219, 52.848405, 52.114772, 51.153844, 50.862783, 50.617176,1}
+vector<float> calib_int_AB = {54.339372, 51.120311, 48.323768, 51.724367, 53.002368, 51.895161, 53.368556, 54.160940, 50.392792, 48.624219, 52.848405, 52.114772, 51.153844, 50.862783, 50.617176,1};
 vector<float> calib_int_CD = {44.267965, 43.887981, 42.386506, 42.066467, 41.266592, 42.462270, 42.703238,37.792835, 36.457600, 37.816670, 37.611428, 39.822824, 39.078728, 39.895177, 39.592268,1};
 
 int wavesPrintRate = 1000;
@@ -221,6 +221,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   cTrig.Divide(2,2);
   TCanvas cSignal("cSignal","cSignal",1500,900);
   cSignal.Divide(2,2);
+  TCanvas cChSum("cChSum","cChSum",1500,900);
+  cChSum.Divide(4,4);
 
   /*Create branches in the root-tree for the data.*/
   tree->Branch("EventNumber",&EventNumber, "EventNumber/I");
@@ -725,6 +727,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       tsumWOMB_invCFD = CFDinvert2(&hSumB,0.4);
       tsumWOMB_invCFD_wrtTrig = trigT-tsumWOMB_invCFD;
       
+      for (int i=0;i<=15;i++){
+      	hChSum.at(i)->Add(&hChtemp.at(i),1);
+      }
+
       /*
       */
       /* end */
@@ -822,6 +828,11 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   cCh0.Print((TString)(plotSaveFolder+"/ch0.pdf)"),"pdf");
   cTrig.Print((TString)(plotSaveFolder+"/trig.pdf)"),"pdf");
   cSignal.Print((TString)(plotSaveFolder+"/signal.pdf)"),"pdf");
+  for (int i=0; i<=15; i++){
+  	cChSum.cd(i+1);
+  	hChSum.at(i)->Draw();
+  }
+  cChSum.Print((TString)(plotSaveFolder+"/ChSum.pdf"),"pdf");
 
   /* temporary for cfdScan
   TH1F* sigma_timeRes_Fit = new TH1F("sigma_timeRes_Fit",";CFD threshold;Timeresolution, ns",N_CFD_points,0,0.01*N_CFD_points);
