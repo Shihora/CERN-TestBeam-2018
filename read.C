@@ -50,8 +50,8 @@ vector<float> calib_amp_AB = {6.748,6.16313,6.07082,6.68036,6.65783,6.37541,6.77
 vector<float> calib_amp_CD = {4.738141,4.689474,4.553902,4.554155,4.545284,4.577300,4.746832,4.396243,4.217127, 4.344094,4.416440,4.678121,4.678319,4.633572,4.705655,1};
 vector<float> calib_amp_AB_new = {6.225833, 5.681876, 5.520674, 5.982826, 6.179563, 6.041097, 6.416068, 6.072533, 5.697019, 5.452204, 5.798762, 6.023438, 5.794798, 5.796922, 5.869892,1}
 vector<float> calib_amp_CD_new = {4.661835, 4.543407, 4.356386, 4.440221, 4.389425, 4.484233, 4.662783, 3.939226, 3.737358, 3.876855, 3.971836, 4.207425, 4.142826, 4.179445, 4.226949,1}
-vector<float> calib_int_AB = {54.339372, 51.120311, 48.323768, 51.724367, 53.002368, 51.895161, 53.368556, 54.160940, 50.392792, 48.624219, 52.848405, 52.114772, 51.153844, 50.862783, 50.617176,1};
-vector<float> calib_int_CD = {44.267965, 43.887981, 42.386506, 42.066467, 41.266592, 42.462270, 42.703238,37.792835, 36.457600, 37.816670, 37.611428, 39.822824, 39.078728, 39.895177, 39.592268,1};
+vector<float> calib_int_AB_new = {54.339372, 51.120311, 48.323768, 51.724367, 53.002368, 51.895161, 53.368556, 54.160940, 50.392792, 48.624219, 52.848405, 52.114772, 51.153844, 50.862783, 50.617176,1};
+vector<float> calib_int_CD_new = {44.267965, 43.887981, 42.386506, 42.066467, 41.266592, 42.462270, 42.703238,37.792835, 36.457600, 37.816670, 37.611428, 39.822824, 39.078728, 39.895177, 39.592268,1};
 
 int wavesPrintRate = 1000;
 int sumWOMAPrintRate = 1000;
@@ -96,6 +96,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   }
   TTree *tree = new TTree("T", "USBWC Data Tree");
   TTree::SetBranchStyle(0);
+
+  gStyle->SetLineScalePS(1); // export high resolution plots
 
   /*Declare & define the variables that are to be saved in the root-tree or that are used during the analysis.*/
   Int_t EventNumber=-999;
@@ -347,13 +349,13 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
     if (WCVersion == WCHU){
       size_of_header = 328;
       calib_amp = calib_amp_AB;
-      calib_int = calib_int_AB;
+      calib_int = calib_int_AB_new;
       const_BL = const_BL_AB;
     }
     else if (WCVersion == WCAlexander){
       size_of_header = 327;
       calib_amp = calib_amp_CD;
-      calib_int = calib_int_CD;
+      calib_int = calib_int_CD_new;
       const_BL = const_BL_CD;
     }
     char header[size_of_header];
