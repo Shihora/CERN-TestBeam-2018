@@ -597,7 +597,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         */
 
         Integral[i] = Integrate_50ns(&hCh, BL_used[i]) / calib_int.at(i); // difined 50 ns window
-        Integral_inRange[i] = integral(&hCh, 105,130, BL_used[i]) / calib_int.at(i); // variable window
+        Integral_inRange[i] = integral(&hCh, 100,125, BL_used[i]) / calib_int.at(i); // variable window
 
         // calibrated, BL-shifted amplitude at maximum in window
         amp[i] = PE(&hCh,calib_amp.at(i),BL_used[i], 100.0, 150.0);
