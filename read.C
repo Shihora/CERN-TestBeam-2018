@@ -348,13 +348,13 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
     there are two types of raw data files that have different header lengths.*/
     if (WCVersion == WCHU){
       size_of_header = 328;
-      calib_amp = calib_amp_AB;
+      calib_amp = calib_amp_AB_new;
       calib_int = calib_int_AB_new;
       const_BL = const_BL_AB;
     }
     else if (WCVersion == WCAlexander){
       size_of_header = 327;
-      calib_amp = calib_amp_CD;
+      calib_amp = calib_amp_CD_new;
       calib_int = calib_int_CD_new;
       const_BL = const_BL_CD;
     }
@@ -723,7 +723,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       for (int i=7;i<15;i++)
       {
         chPE[i] = amp_atTime(&hChtemp.at(i), t_PE_WOM2);
-        chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM2-10, t_PE_WOM2+15, const_BL[i])/calib_int.at(i);
+        chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM2-10, t_PE_WOM2+15,0)/calib_int.at(i);
       }
       PE_WOM2_int = chPE_int[7]+chPE_int[8]+chPE_int[9]+chPE_int[10]+chPE_int[11]+chPE_int[12]+chPE_int[13]+chPE_int[14];
 
