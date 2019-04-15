@@ -209,10 +209,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Short_t amplValues[16][1024];
   TH1F hCh("hCh","dummy;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
   // uncommtent, if .root file name should equal raw data file
-  // TString plotSaveFolder  = _inDataFolder;
-  // plotSaveFolder.ReplaceAll("data","runs");
-  TString plotSaveFolder  = _outFile;
-  plotSaveFolder.ReplaceAll("out.root","");
+  TString plotSaveFolder  = _inDataFolder;
+  plotSaveFolder.ReplaceAll("data","runs");
+  // TString plotSaveFolder  = _outFile;
+  // plotSaveFolder.ReplaceAll("out.root","");
   TCanvas cWaves("cWaves","cWaves",1000,700);
   cWaves.Divide(4,4);
   TCanvas csumWOMA("csumWOMA","csumWOMA",1000,700);
@@ -690,7 +690,9 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       for (int i=0;i<7;i++)
       {
         chPE[i] = amp_atTime(&hChtemp.at(i), t_PE_WOM1);
-        chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM1-10, t_PE_WOM1+15, const_BL[i])/calib_int.at(i);
+        // reverse amplitude calibration before integration
+        hChtemp.at(i).Scale(calib_amp.at(i));
+        chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM1-10, t_PE_WOM1+15, 0)/calib_int.at(i);
       }
 
       PE_WOM1_int = chPE_int[0]+chPE_int[1]+chPE_int[2]+chPE_int[3]+chPE_int[4]+chPE_int[5]+chPE_int[6];
@@ -723,7 +725,9 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       for (int i=7;i<15;i++)
       {
         chPE[i] = amp_atTime(&hChtemp.at(i), t_PE_WOM2);
-        chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM2-10, t_PE_WOM2+15,0)/calib_int.at(i);
+        // reverse amplitude calibration before integration
+        hChtemp.at(i).Scale(calib_amp.at(i));
+        chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM2-10, t_PE_WOM2+15, 0)/calib_int.at(i);
       }
       PE_WOM2_int = chPE_int[7]+chPE_int[8]+chPE_int[9]+chPE_int[10]+chPE_int[11]+chPE_int[12]+chPE_int[13]+chPE_int[14];
 
@@ -731,6 +735,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       tsumWOMB_invCFD = CFDinvert2(&hSumB,0.4);
       tsumWOMB_invCFD_wrtTrig = trigT-tsumWOMB_invCFD;
       
+      // add-up all events channel-wise, not calibrated
       for (int i=0;i<=15;i++){
       	hChSum.at(i)->Add(&hChtemp.at(i),1);
       }
