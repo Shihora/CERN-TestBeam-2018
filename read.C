@@ -48,8 +48,8 @@ vector<float> const_BL_AB = {-2.05,-1.43,-1.39,-2.63,-2.42,-2.34,-1.36,-1.00,-3.
 vector<float> const_BL_CD = {-0.08,-0.39,-1.47,-0.56,-0.59,-0.85,-1.44,-1.00,-3.45,-3.47,-0.99,-0.68,-0.35,-0.40,-0.55};
 vector<float> calib_amp_AB = {6.748,6.16313,6.07082,6.68036,6.65783,6.37541,6.7711,6.85418,6.68469,6.58283,6.98329,6.97906,6.76493,6.75924,6.78279,1};
 vector<float> calib_amp_CD = {4.738141,4.689474,4.553902,4.554155,4.545284,4.577300,4.746832,4.396243,4.217127, 4.344094,4.416440,4.678121,4.678319,4.633572,4.705655,1};
-vector<float> calib_amp_AB_new = {6.225833, 5.681876, 5.520674, 5.982826, 6.179563, 6.041097, 6.416068, 6.072533, 5.697019, 5.452204, 5.798762, 6.023438, 5.794798, 5.796922, 5.869892,1}
-vector<float> calib_amp_CD_new = {4.661835, 4.543407, 4.356386, 4.440221, 4.389425, 4.484233, 4.662783, 3.939226, 3.737358, 3.876855, 3.971836, 4.207425, 4.142826, 4.179445, 4.226949,1}
+vector<float> calib_amp_AB_new = {6.225833, 5.681876, 5.520674, 5.982826, 6.179563, 6.041097, 6.416068, 6.072533, 5.697019, 5.452204, 5.798762, 6.023438, 5.794798, 5.796922, 5.869892,1};
+vector<float> calib_amp_CD_new = {4.661835, 4.543407, 4.356386, 4.440221, 4.389425, 4.484233, 4.662783, 3.939226, 3.737358, 3.876855, 3.971836, 4.207425, 4.142826, 4.179445, 4.226949,1};
 vector<float> calib_int_AB_new = {54.339372, 51.120311, 48.323768, 51.724367, 53.002368, 51.895161, 53.368556, 54.160940, 50.392792, 48.624219, 52.848405, 52.114772, 51.153844, 50.862783, 50.617176,1};
 vector<float> calib_int_CD_new = {44.267965, 43.887981, 42.386506, 42.066467, 41.266592, 42.462270, 42.703238,37.792835, 36.457600, 37.816670, 37.611428, 39.822824, 39.078728, 39.895177, 39.592268,1};
 
@@ -208,6 +208,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   }
   Short_t amplValues[16][1024];
   TH1F hCh("hCh","dummy;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
+  TH1F sum_total1("sum_total1","sum_total WOM1",1024,-0.5*SP,1023.5*SP);
+  TH1F sum_total2("sum_total2","sum_total WOM2",1024,-0.5*SP,1023.5*SP);
   // uncommtent, if .root file name should equal raw data file
   // TString plotSaveFolder  = _inDataFolder;
   // plotSaveFolder.ReplaceAll("data","runs");
@@ -227,6 +229,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   cSignal.Divide(2,2);
   TCanvas cChSum("cChSum","cChSum",1500,900);
   cChSum.Divide(4,4);
+  TCanvas sum_total("sum_total","sum_total",1500,900);
+  sum_total.Divide(2);
 
   /*Create branches in the root-tree for the data.*/
   tree->Branch("EventNumber",&EventNumber, "EventNumber/I");
@@ -685,6 +689,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
 
       csumWOMA.cd(8);
       hSumA.DrawCopy();
+      
 
       // get single channel amplitude and integral at time of sum maximum
       for (int i=0;i<7;i++)
@@ -696,6 +701,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       }
 
       PE_WOM1_int = chPE_int[0]+chPE_int[1]+chPE_int[2]+chPE_int[3]+chPE_int[4]+chPE_int[5]+chPE_int[6];
+
+      if (PE_WOM1_int >= 300){
+      	sum_total1.Add(&hSumA,1);
+      }
 
       // timing WOM 1
       tsumWOMA_invCFD = CFDinvert2(&hSumA,0.4);
@@ -721,6 +730,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       csumWOMB.cd(9);
       hSumB.DrawCopy();
 
+
       // get single channel amplitude and integral at time of sum maximum
       for (int i=7;i<15;i++)
       {
@@ -730,6 +740,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM2-10, t_PE_WOM2+15, 0)/calib_int.at(i);
       }
       PE_WOM2_int = chPE_int[7]+chPE_int[8]+chPE_int[9]+chPE_int[10]+chPE_int[11]+chPE_int[12]+chPE_int[13]+chPE_int[14];
+
+      if (PE_WOM2_int >= 300){
+      	sum_total2.Add(&hSumB,1);
+      }
 
       // timing WOM 2
       tsumWOMB_invCFD = CFDinvert2(&hSumB,0.4);
@@ -842,7 +856,13 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   	hChSum.at(i)->Draw();
   }
   cChSum.Print((TString)(plotSaveFolder+"/ChSum.pdf"),"pdf");
-
+  sum_total.cd(1);
+  sum_total1.GetXaxis()->SetRangeUser(40., 50.);
+  sum_total1.Draw();
+  sum_total.cd(2);
+  sum_total2.GetXaxis()->SetRangeUser(40., 50.);
+  sum_total2.Draw();
+  sum_total.Print((TString)(plotSaveFolder+"/sum_total.pdf"),"pdf");
   /* temporary for cfdScan
   TH1F* sigma_timeRes_Fit = new TH1F("sigma_timeRes_Fit",";CFD threshold;Timeresolution, ns",N_CFD_points,0,0.01*N_CFD_points);
   TF1* fGaus = new TF1("fGaus","gaus",45,60);
