@@ -19,7 +19,6 @@
 #include <TSpectrum.h> // peakfinder
 #include <TPolyMarker.h> // peakfinder
 #include <TError.h> // root verbosity level
-//#include <TStyle.h>
 
 //C, C++
 #include <stdio.h>
@@ -853,12 +852,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         if(EventNumber%sumWOMAPrintRate==0 && i<7){
           csumWOMA.cd(i+1);
           gPad->SetRightMargin(0.00);
-          // calibrate (amplitude) again
-          hChtemp.at(i).Scale(1/calib_amp.at(i));
-
-          // draw channel histograms, WOM 1
-          // draw vertical lines to show integration window and max. amp.
-          // draw custom legend
+          
+          hChtemp.at(i).Scale(1/calib_amp.at(i)); // calibrate (amplitude) again
           hChtemp.at(i).SetStats(kFALSE);
           if (WCVersion == WCAlexander){hChtemp.at(i).SetTitle(Form("ch%d, WOM-C, calibrated, BL-corrected",i));}
           else{hChtemp.at(i).SetTitle(Form("ch%d, WOM-A, calibrated, BL-corrected",i));}
@@ -901,12 +896,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         if(EventNumber%sumWOMBPrintRate==0 && i>6 && i<15){
           csumWOMB.cd(i-6);
           gPad->SetRightMargin(0.00);
-          // calibrate (amplitude) again
-          hChtemp.at(i).Scale(1/calib_amp.at(i));
-
-          // draw channel histograms, WOM 2
-          // draw vertical lines to show integration window and max. amp.
-          // draw custom legend
+          
+          hChtemp.at(i).Scale(1/calib_amp.at(i)); // calibrate (amplitude) again
           hChtemp.at(i).SetStats(kFALSE);
           if (WCVersion == WCAlexander){hChtemp.at(i).SetTitle(Form("ch%d, WOM-D, calibrated, BL-corrected",i));}
           else{hChtemp.at(i).SetTitle(Form("ch%d, WOM-B, calibrated, BL-corrected",i));}
