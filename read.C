@@ -48,10 +48,25 @@ vector<float> const_BL_AB = {-2.05,-1.43,-1.39,-2.63,-2.42,-2.34,-1.36,-1.00,-3.
 vector<float> const_BL_CD = {-0.08,-0.39,-1.47,-0.56,-0.59,-0.85,-1.44,-1.00,-3.45,-3.47,-0.99,-0.68,-0.35,-0.40,-0.55};
 vector<float> calib_amp_AB = {6.748,6.16313,6.07082,6.68036,6.65783,6.37541,6.7711,6.85418,6.68469,6.58283,6.98329,6.97906,6.76493,6.75924,6.78279,1};
 vector<float> calib_amp_CD = {4.738141,4.689474,4.553902,4.554155,4.545284,4.577300,4.746832,4.396243,4.217127, 4.344094,4.416440,4.678121,4.678319,4.633572,4.705655,1};
-vector<float> calib_amp_AB_new = {6.225833, 5.681876, 5.520674, 5.982826, 6.179563, 6.041097, 6.416068, 6.072533, 5.697019, 5.452204, 5.798762, 6.023438, 5.794798, 5.796922, 5.869892,1}
-vector<float> calib_amp_CD_new = {4.661835, 4.543407, 4.356386, 4.440221, 4.389425, 4.484233, 4.662783, 3.939226, 3.737358, 3.876855, 3.971836, 4.207425, 4.142826, 4.179445, 4.226949,1}
+vector<float> calib_amp_AB_new = {6.225833, 5.681876, 5.520674, 5.982826, 6.179563, 6.041097, 6.416068, 6.072533, 5.697019, 5.452204, 5.798762, 6.023438, 5.794798, 5.796922, 5.869892,1};
+vector<float> calib_amp_CD_new = {4.661835, 4.543407, 4.356386, 4.440221, 4.389425, 4.484233, 4.662783, 3.939226, 3.737358, 3.876855, 3.971836, 4.207425, 4.142826, 4.179445, 4.226949,1};
 vector<float> calib_int_AB_new = {54.339372, 51.120311, 48.323768, 51.724367, 53.002368, 51.895161, 53.368556, 54.160940, 50.392792, 48.624219, 52.848405, 52.114772, 51.153844, 50.862783, 50.617176,1};
 vector<float> calib_int_CD_new = {44.267965, 43.887981, 42.386506, 42.066467, 41.266592, 42.462270, 42.703238,37.792835, 36.457600, 37.816670, 37.611428, 39.822824, 39.078728, 39.895177, 39.592268,1};
+
+/*
+from analysis after 20.09.2019
+__ CALIBRATION VALUES of indiv. arrays, const. BL, 25 ns integr. window & amp. window __________________
+--> currently not used
+*/
+
+vector<float> calib_amp_AB_new_new = {6.244877,5.705569,5.607200,5.986692,6.169043,6.028268,6.373152,6.119474,5.743661,5.529950,5.834724,6.037933,5.894155,5.783814,5.884134,1};
+vector<float> calib_amp_CD_new_new = {4.671495,4.581007,4.374434,4.439944,4.411525,4.476402,4.665084,3.964220,3.759947,3.893004,3.992669,4.202341,4.175846,4.203692,4.241609,1};
+vector<float> calib_int_AB_new_new = {55.273353,51.667572,49.199172,52.752462,53.742860,52.648491,54.374594,55.256870,50.819364,49.113588,53.720801,53.096161,51.795907,51.553016,51.864036,1};
+vector<float> calib_int_CD_new_new = {45.368049,44.949603,43.442029,43.141471,42.225520,43.417617,43.873752,38.620238,36.860903,38.576895,38.513328,40.875418,39.886987,40.813795,40.545773,1};
+// additional baseline correction form charge calibration fit
+vector<float> BL_offset_int_AB_new_new = {26.291626,19.325840,18.415478,18.199522,21.476783,17.324521,17.554122,26.286964,17.569722,16.935811,17.227543,16.821615,20.566134,16.816350,16.457043,1};
+vector<float> BL_offset_int_CD_new_new = {24.835058,16.627214,16.464056,16.058919,20.489611,15.856769,15.133110,21.982722,14.300209,13.541863,13.681224,13.750675,17.944450,13.199993,13.417936,1};
+/*____________________________________________________________*/
 
 int wavesPrintRate = 1000;
 int sumWOMAPrintRate = 1000;
@@ -209,14 +224,14 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Short_t amplValues[16][1024];
   TH1F hCh("hCh","dummy;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
   // uncommtent, if .root file name should equal raw data file
-  // TString plotSaveFolder  = _inDataFolder;
-  // plotSaveFolder.ReplaceAll("data","runs");
-  TString plotSaveFolder  = _outFile;
-  plotSaveFolder.ReplaceAll("out.root","");
+  TString plotSaveFolder  = _inDataFolder;
+  plotSaveFolder.ReplaceAll("data","runs");
+  // TString plotSaveFolder  = _outFile;
+  // plotSaveFolder.ReplaceAll("out.root","");
   TCanvas cWaves("cWaves","cWaves",1000,700);
   cWaves.Divide(4,4);
   TCanvas csumWOMA("csumWOMA","csumWOMA",1000,700);
-  csumWOMA.Divide(4,2);
+  csumWOMA.Divide(3,3);
   TCanvas csumWOMB("csumWOMB","csumWOMB",1000,700);
   csumWOMB.Divide(3,3);
   TCanvas cCh0("cCh0","cCh0",1500,900);
@@ -577,15 +592,6 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         //   }
         //   fclose(histOut);
         // }
-        // clibrated sum
-        if(EventNumber%sumWOMAPrintRate==0&&i<7){
-            csumWOMA.cd(i+1);
-            hCh.DrawCopy();
-        }
-        if(EventNumber%sumWOMBPrintRate==0&&i>6){
-           csumWOMB.cd(i-6);
-           hCh.DrawCopy();
-        }
 
         /*
         __ Integral & Amplitude ________________________________________
@@ -611,6 +617,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         */
         if(EventNumber%wavesPrintRate==0){
           cWaves.cd(1+4*(i%4)+(i)/4);
+          gPad->SetRightMargin(0.0);
+          hCh.SetLineColorAlpha(kBlack,0.5);
+          hCh.SetMarkerStyle(8);
+          hCh.SetMarkerSize(0.1);
           hCh.DrawCopy();
           hCh.GetXaxis()->SetRange((t[i]-20)/SP,(t[i]+30)/SP);
           int max_bin = hCh.GetMaximumBin();
@@ -662,11 +672,13 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       }
 
       /*
-      __ FILLING SUM HISTOGRAMS ________________________
-      For WOM 1 and 2 and determine time Resolution
+      __ FILLING SUM HISTOGRAMS WOM 1 ________________________
+      and determine time Resolution
       */
 
-      // SUM WOM 1
+      // create sum histogram
+      // apply baseline correction 
+      // and amplitude calibration
       TH1F hSumA("hSumA","Sum A;ns;Amplitude, N_pe",1024,-0.5*SP,1023.5*SP);
       for(int hSumIndexA=0;hSumIndexA<7;hSumIndexA++)
       {
@@ -683,8 +695,46 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       PE_WOM1 = max_inRange(&hSumA, 100.0, 150.0)*8/7;
       t_PE_WOM1 = t_max_inRange(&hSumA, 100.0, 150.0);
 
-      csumWOMA.cd(8);
-      hSumA.DrawCopy();
+      if(EventNumber%sumWOMAPrintRate==0){
+        // draw sum histogram
+        // draw vertical lines to show integration window and max. amp.
+        // draw custom legend
+        csumWOMA.cd(9);;
+        gPad->SetRightMargin(0.00);
+
+        hSumA.SetStats(kFALSE);
+        if (WCVersion == WCAlexander){hSumA.SetTitle("WOM-C, signal sum, calibrated");}
+        else{hSumA.SetTitle("WOM-A, signal sum, calibrated");}
+        hSumA.GetYaxis()->SetTitle("amplitude [N_{pe}]");
+        hSumA.GetYaxis()->SetTitleOffset(1.1);
+        hSumA.GetXaxis()->SetTitle("time [ns]");
+        hSumA.SetLineColorAlpha(kBlack,0.7);
+        hSumA.SetMarkerStyle(8);
+        hSumA.SetMarkerSize(0.15);
+        hSumA.DrawCopy();
+
+        TLine * ln_t_PE_WOM1 = new TLine(t_PE_WOM1,0,t_PE_WOM1,PE_WOM1);
+        TLine * ln_t_PE_WOM1_int_lo = new TLine(t_PE_WOM1-10,0,t_PE_WOM1-10,PE_WOM1);
+        TLine * ln_t_PE_WOM1_int_hi = new TLine(t_PE_WOM1+15,0,t_PE_WOM1+15,PE_WOM1);
+
+        ln_t_PE_WOM1->SetLineColor(kGreen);
+        ln_t_PE_WOM1_int_lo->SetLineColor(kOrange);
+        ln_t_PE_WOM1_int_hi->SetLineColor(kOrange);
+
+        ln_t_PE_WOM1->SetLineStyle(2);
+
+        ln_t_PE_WOM1->Draw("same");
+        ln_t_PE_WOM1_int_lo->Draw("same");
+        ln_t_PE_WOM1_int_hi->Draw("same");
+
+        TLegend *hSumA_leg = new TLegend(0.5,0.75,1.0,0.9);
+        hSumA_leg->SetTextSize(0.035);
+        hSumA_leg->AddEntry(&hSumA,Form("#bf{waveform data}"),"lpe");
+        hSumA_leg->AddEntry((TObject*)0,Form("entries = %1.f",hSumA.GetEntries()),"");
+        hSumA_leg->AddEntry(ln_t_PE_WOM1,Form("max. amplitude @%1.2f ns",t_PE_WOM1),"l");
+        hSumA_leg->AddEntry(ln_t_PE_WOM1_int_lo,Form("integration window: 25 ns"),"l");
+        hSumA_leg->Draw();
+      }
 
       // get single channel amplitude and integral at time of sum maximum
       for (int i=0;i<7;i++)
@@ -701,7 +751,14 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       tsumWOMA_invCFD = CFDinvert2(&hSumA,0.4);
       tsumWOMA_invCFD_wrtTrig = trigT-tsumWOMA_invCFD;
 
-      // SUM WOM 2
+      /*
+      __ FILLING SUM HISTOGRAMS WOM 2 ________________________
+      and determine time Resolution
+      */
+
+      // create sum histogram
+      // apply baseline correction 
+      // and amplitude calibration
       TH1F hSumB("hSumB","Sum B;ns;Amplitude, N_pe",1024,-0.5*SP,1023.5*SP);
       for(int hSumIndexB=7;hSumIndexB<15;hSumIndexB++)
       {
@@ -718,8 +775,45 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       PE_WOM2 = max_inRange(&hSumB, 100.0, 150.0);
       t_PE_WOM2 = t_max_inRange(&hSumB, 100.0, 150.0);
 
-      csumWOMB.cd(9);
-      hSumB.DrawCopy();
+      if(EventNumber%sumWOMBPrintRate==0){
+        // draw sum histogram
+        // draw vertical lines to show integration window and max. amp.
+        // draw custom legend
+        csumWOMB.cd(9);
+        gPad->SetRightMargin(0.00);
+
+        hSumB.SetStats(kFALSE);
+        if (WCVersion == WCAlexander){hSumB.SetTitle("WOM-D, signal sum, calibrated");}
+        else{hSumB.SetTitle("WOM-B , signal sum, calibrated");}
+        hSumB.GetYaxis()->SetTitle("amplitude [N_{pe}]");
+        hSumB.GetXaxis()->SetTitle("time [ns]");
+        hSumB.SetLineColorAlpha(kBlack,0.7);
+        hSumB.SetMarkerStyle(8);
+        hSumB.SetMarkerSize(0.15);
+        hSumB.DrawCopy();
+
+        TLine * ln_t_PE_WOM2 = new TLine(t_PE_WOM2,0,t_PE_WOM2,PE_WOM2);
+        TLine * ln_t_PE_WOM2_int_lo = new TLine(t_PE_WOM2-10,0,t_PE_WOM2-10,PE_WOM2);
+        TLine * ln_t_PE_WOM2_int_hi = new TLine(t_PE_WOM2+15,0,t_PE_WOM2+15,PE_WOM2);
+
+        ln_t_PE_WOM2->SetLineColor(kGreen);
+        ln_t_PE_WOM2_int_lo->SetLineColor(kOrange);
+        ln_t_PE_WOM2_int_hi->SetLineColor(kOrange);
+
+        ln_t_PE_WOM2->SetLineStyle(2);
+
+        ln_t_PE_WOM2->Draw("same");
+        ln_t_PE_WOM2_int_lo->Draw("same");
+        ln_t_PE_WOM2_int_hi->Draw("same");
+
+        TLegend *hSumB_leg = new TLegend(0.62,0.75,1.0,0.9);
+        hSumB_leg->SetTextSize(0.035);
+        hSumB_leg->AddEntry(&hSumB,Form("#bf{waveform data}"),"lpe");
+        hSumB_leg->AddEntry((TObject*)0,Form("entries = %1.f",hSumB.GetEntries()),"");
+        hSumB_leg->AddEntry(ln_t_PE_WOM2,Form("max. amplitude @%1.2f ns",t_PE_WOM2),"l");
+        hSumB_leg->AddEntry(ln_t_PE_WOM2_int_lo,Form("integration window: 25 ns"),"l");
+        hSumB_leg->Draw(); 
+      }
 
       // get single channel amplitude and integral at time of sum maximum
       for (int i=7;i<15;i++)
@@ -734,11 +828,117 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
       // timing WOM 2
       tsumWOMB_invCFD = CFDinvert2(&hSumB,0.4);
       tsumWOMB_invCFD_wrtTrig = trigT-tsumWOMB_invCFD;
+
+      /*
+      __ more WAVEFORMS PRINTING ___________
+      */
       
-      // add-up all events channel-wise, not calibrated
       for (int i=0;i<=15;i++){
+        // add-up all events channel-wise, not calibrated
       	hChSum.at(i)->Add(&hChtemp.at(i),1);
+
+        // print calibrated individual channel waveforms, to WOM overview
+        if(EventNumber%sumWOMAPrintRate==0 && i<7){
+          // leave pad3 empty 
+          // if (i<2){csumWOMA.cd(i+1);}
+          // else{csumWOMA.cd(i+2);}
+          csumWOMA.cd(i+1);
+          gPad->SetRightMargin(0.00);
+          // calibrate (amplitude) again
+          hChtemp.at(i).Scale(1/calib_amp.at(i));
+
+          // draw channel histograms, WOM 1
+          // draw vertical lines to show integration window and max. amp.
+          // draw custom legend
+          hChtemp.at(i).SetStats(kFALSE);
+          if (WCVersion == WCAlexander){hChtemp.at(i).SetTitle(Form("ch%d, WOM-C, calibrated, BL-corrected",i));}
+          else{hChtemp.at(i).SetTitle(Form("ch%d, WOM-A, calibrated, BL-corrected",i));}
+          hChtemp.at(i).GetYaxis()->SetTitle("amplitude [N_{pe}]");
+          hChtemp.at(i).GetYaxis()->SetTitleOffset(1.1);
+          hChtemp.at(i).GetXaxis()->SetTitle("time [ns]");
+          hChtemp.at(i).SetLineColorAlpha(kBlack,0.7);
+          hChtemp.at(i).SetMarkerStyle(8);
+          hChtemp.at(i).SetMarkerSize(0.15);
+          hChtemp.at(i).DrawCopy();
+
+          TLine * ln_t_PE_WOM1 = new TLine(t_PE_WOM1,0,t_PE_WOM1,chPE[i]);
+          TLine * ln_t_PE_WOM1_int_lo = new TLine(t_PE_WOM1-10,0,t_PE_WOM1-10,chPE[i]);
+          TLine * ln_t_PE_WOM1_int_hi = new TLine(t_PE_WOM1+15,0,t_PE_WOM1+15,chPE[i]);
+          TLine *ln_bl_const = new TLine(0,0,320,0);
+
+          ln_t_PE_WOM1->SetLineColor(kGreen);
+          ln_t_PE_WOM1_int_lo->SetLineColor(kOrange);
+          ln_t_PE_WOM1_int_hi->SetLineColor(kOrange);
+          ln_bl_const->SetLineColor(kRed);
+
+          ln_t_PE_WOM1->SetLineStyle(2);
+          ln_bl_const->SetLineStyle(3);
+
+          ln_t_PE_WOM1->Draw("same");
+          ln_t_PE_WOM1_int_lo->Draw("same");
+          ln_t_PE_WOM1_int_hi->Draw("same");
+          ln_bl_const->Draw("same");
+
+          TLegend *hSumA_leg = new TLegend(0.62,0.70,1.0,0.9);
+          hSumA_leg->SetTextSize(0.03);
+          hSumA_leg->AddEntry(&hChtemp.at(i),Form("#bf{waveform data}"),"lpe");
+          hSumA_leg->AddEntry((TObject*)0,Form("entries = %1.f",hChtemp.at(i).GetEntries()),"");
+          hSumA_leg->AddEntry(ln_bl_const,Form("baseline corrected by %1.1f N_{pe}",const_BL_AB[i]/calib_amp[i]),"l");
+          hSumA_leg->AddEntry((TObject*)0,Form("from signal sum:"),"");
+          hSumA_leg->AddEntry(ln_t_PE_WOM1,Form("max. amplitude @%1.2f ns",t_PE_WOM1),"l");
+          hSumA_leg->AddEntry(ln_t_PE_WOM1_int_lo,Form("integration window: 25 ns"),"l");
+          hSumA_leg->Draw();
+        }
+        if(EventNumber%sumWOMBPrintRate==0 && i>6 && i<15){
+          csumWOMB.cd(i-6);
+          gPad->SetRightMargin(0.00);
+          // calibrate (amplitude) again
+          hChtemp.at(i).Scale(1/calib_amp.at(i));
+
+          // draw channel histograms, WOM 2
+          // draw vertical lines to show integration window and max. amp.
+          // draw custom legend
+          hChtemp.at(i).SetStats(kFALSE);
+          if (WCVersion == WCAlexander){hChtemp.at(i).SetTitle(Form("ch%d, WOM-D, calibrated, BL-corrected",i));}
+          else{hChtemp.at(i).SetTitle(Form("ch%d, WOM-B, calibrated, BL-corrected",i));}
+          hChtemp.at(i).GetYaxis()->SetTitle("amplitude [N_{pe}]");
+          hChtemp.at(i).GetXaxis()->SetTitle("time [ns]");
+          hChtemp.at(i).SetLineColorAlpha(kBlack,0.7);
+          hChtemp.at(i).SetMarkerStyle(8);
+          hChtemp.at(i).SetMarkerSize(0.15);
+          hChtemp.at(i).DrawCopy();
+
+          TLine * ln_t_PE_WOM2 = new TLine(t_PE_WOM2,0,t_PE_WOM2,chPE[i]);
+          TLine * ln_t_PE_WOM2_int_lo = new TLine(t_PE_WOM2-10,0,t_PE_WOM2-10,chPE[i]);
+          TLine * ln_t_PE_WOM2_int_hi = new TLine(t_PE_WOM2+15,0,t_PE_WOM2+15,chPE[i]);
+          TLine *ln_bl_const = new TLine(0,0,320,0);
+
+          ln_t_PE_WOM2->SetLineColor(kGreen);
+          ln_t_PE_WOM2_int_lo->SetLineColor(kOrange);
+          ln_t_PE_WOM2_int_hi->SetLineColor(kOrange);
+          ln_bl_const->SetLineColor(kRed);
+
+          ln_t_PE_WOM2->SetLineStyle(2);
+          ln_bl_const->SetLineStyle(3);
+
+          ln_t_PE_WOM2->Draw("same");
+          ln_t_PE_WOM2_int_lo->Draw("same");
+          ln_t_PE_WOM2_int_hi->Draw("same");
+          ln_bl_const->Draw("same");
+
+          TLegend *hSumB_leg = new TLegend(0.62,0.70,1.0,0.9);
+          hSumB_leg->SetTextSize(0.03);
+          hSumB_leg->AddEntry(&hChtemp.at(i),Form("#bf{waveform data}"),"lpe");
+          hSumB_leg->AddEntry((TObject*)0,Form("entries = %1.f",hChtemp.at(i).GetEntries()),"");
+          hSumB_leg->AddEntry(ln_bl_const,Form("baseline corrected by %1.1f N_{pe}",const_BL_CD[i]/calib_amp[i]),"l");
+          hSumB_leg->AddEntry((TObject*)0,Form("from signal sum:"),"");
+          hSumB_leg->AddEntry(ln_t_PE_WOM2,Form("max. amplitude @%1.2f ns",t_PE_WOM2),"l");
+          hSumB_leg->AddEntry(ln_t_PE_WOM2_int_lo,Form("integration window: 25 ns"),"l");
+          hSumB_leg->Draw(); 
+        }  
       }
+
+
 
       /*
       */
