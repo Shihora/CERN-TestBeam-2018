@@ -223,6 +223,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   }
   Short_t amplValues[16][1024];
   TH1F hCh("hCh","dummy;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
+  TH1F sum_total1("sum_total1","sum_total WOM1",1024,-0.5*SP,1023.5*SP);
+  TH1F sum_total2("sum_total2","sum_total WOM2",1024,-0.5*SP,1023.5*SP);
   // uncommtent, if .root file name should equal raw data file
   // TString plotSaveFolder  = _inDataFolder;
   // plotSaveFolder.ReplaceAll("data","runs");
@@ -242,6 +244,8 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   cSignal.Divide(2,2);
   TCanvas cChSum("cChSum","cChSum",1500,900);
   cChSum.Divide(4,4);
+  TCanvas sum_total("sum_total","sum_total",1500,900);
+  sum_total.Divide(2);
 
   /*Create branches in the root-tree for the data.*/
   tree->Branch("EventNumber",&EventNumber, "EventNumber/I");
@@ -747,6 +751,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
 
       PE_WOM1_int = chPE_int[0]+chPE_int[1]+chPE_int[2]+chPE_int[3]+chPE_int[4]+chPE_int[5]+chPE_int[6];
 
+      if (PE_WOM1_int >= 300){
+      	sum_total1.Add(&hSumA,1);
+      }
+
       // timing WOM 1
       tsumWOMA_invCFD = CFDinvert2(&hSumA,0.4);
       tsumWOMA_invCFD_wrtTrig = trigT-tsumWOMA_invCFD;
@@ -815,6 +823,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         hSumB_leg->Draw(); 
       }
 
+
       // get single channel amplitude and integral at time of sum maximum
       for (int i=7;i<15;i++)
       {
@@ -824,6 +833,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         chPE_int[i] = integral(&hChtemp.at(i), t_PE_WOM2-10, t_PE_WOM2+15, 0)/calib_int.at(i);
       }
       PE_WOM2_int = chPE_int[7]+chPE_int[8]+chPE_int[9]+chPE_int[10]+chPE_int[11]+chPE_int[12]+chPE_int[13]+chPE_int[14];
+
+      if (PE_WOM2_int >= 300){
+      	sum_total2.Add(&hSumB,1);
+      }
 
       // timing WOM 2
       tsumWOMB_invCFD = CFDinvert2(&hSumB,0.4);
@@ -1042,7 +1055,13 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   	hChSum.at(i)->Draw();
   }
   cChSum.Print((TString)(plotSaveFolder+"/ChSum.pdf"),"pdf");
-
+  sum_total.cd(1);
+  sum_total1.GetXaxis()->SetRangeUser(40., 50.);
+  sum_total1.Draw();
+  sum_total.cd(2);
+  sum_total2.GetXaxis()->SetRangeUser(40., 50.);
+  sum_total2.Draw();
+  sum_total.Print((TString)(plotSaveFolder+"/sum_total.pdf"),"pdf");
   /* temporary for cfdScan
   TH1F* sigma_timeRes_Fit = new TH1F("sigma_timeRes_Fit",";CFD threshold;Timeresolution, ns",N_CFD_points,0,0.01*N_CFD_points);
   TF1* fGaus = new TF1("fGaus","gaus",45,60);
