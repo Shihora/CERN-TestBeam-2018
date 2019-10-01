@@ -224,10 +224,10 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
   Short_t amplValues[16][1024];
   TH1F hCh("hCh","dummy;ns;Amplitude, mV",1024,-0.5*SP,1023.5*SP);
   // uncommtent, if .root file name should equal raw data file
-  TString plotSaveFolder  = _inDataFolder;
-  plotSaveFolder.ReplaceAll("data","runs");
-  // TString plotSaveFolder  = _outFile;
-  // plotSaveFolder.ReplaceAll("out.root","");
+  // TString plotSaveFolder  = _inDataFolder;
+  // plotSaveFolder.ReplaceAll("data","runs");
+  TString plotSaveFolder  = _outFile;
+  plotSaveFolder.ReplaceAll("out.root","");
   TCanvas cWaves("cWaves","cWaves",1000,700);
   cWaves.Divide(4,4);
   TCanvas csumWOMA("csumWOMA","csumWOMA",1000,700);
