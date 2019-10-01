@@ -58,7 +58,6 @@ from analysis after 20.09.2019
 __ CALIBRATION VALUES of indiv. arrays, const. BL, 25 ns integr. window & amp. window __________________
 --> currently not used
 */
-
 vector<float> calib_amp_AB_new_new = {6.244877,5.705569,5.607200,5.986692,6.169043,6.028268,6.373152,6.119474,5.743661,5.529950,5.834724,6.037933,5.894155,5.783814,5.884134,1};
 vector<float> calib_amp_CD_new_new = {4.671495,4.581007,4.374434,4.439944,4.411525,4.476402,4.665084,3.964220,3.759947,3.893004,3.992669,4.202341,4.175846,4.203692,4.241609,1};
 vector<float> calib_int_AB_new_new = {55.273353,51.667572,49.199172,52.752462,53.742860,52.648491,54.374594,55.256870,50.819364,49.113588,53.720801,53.096161,51.795907,51.553016,51.864036,1};
@@ -703,7 +702,7 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
         // draw sum histogram
         // draw vertical lines to show integration window and max. amp.
         // draw custom legend
-        csumWOMA.cd(9);;
+        csumWOMA.cd(9);
         gPad->SetRightMargin(0.00);
 
         hSumA.SetStats(kFALSE);
@@ -852,9 +851,6 @@ void read(TString _inFileList, TString _inDataFolder, TString _outFile){
 
         // print calibrated individual channel waveforms, to WOM overview
         if(EventNumber%sumWOMAPrintRate==0 && i<7){
-          // leave pad3 empty 
-          // if (i<2){csumWOMA.cd(i+1);}
-          // else{csumWOMA.cd(i+2);}
           csumWOMA.cd(i+1);
           gPad->SetRightMargin(0.00);
           // calibrate (amplitude) again
